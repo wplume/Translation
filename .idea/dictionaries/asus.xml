@@ -2,6 +2,7 @@
   <dictionary name="asus">
     <words>
       <w>asus</w>
+      <w>framelayout</w>
     </words>
   </dictionary>
 </component>
