@@ -1,5 +1,6 @@
 package com.example.asus.translation;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -31,7 +32,7 @@ import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 
-public class OnlineFragment extends android.support.v4.app.Fragment {
+public class FragmentOnline extends android.support.v4.app.Fragment {
     ImageView imageView;
     TextView content;
     TextView note;
@@ -39,6 +40,7 @@ public class OnlineFragment extends android.support.v4.app.Fragment {
     Button btnTranslate;
     Button btnEnPron;
     Button btnAmPron;
+    Button btnAddToGlossary;
     TextView ph_en;
     TextView ph_am;
     TextView tvOut;
@@ -68,10 +70,13 @@ public class OnlineFragment extends android.support.v4.app.Fragment {
         btnTranslate = (Button) view.findViewById(R.id.btnTranslate);
         btnEnPron = (Button) view.findViewById(R.id.btnEnPron);
         btnAmPron = (Button) view.findViewById(R.id.btnAmPron);
+        btnAddToGlossary = (Button) view.findViewById(R.id.btnAddToGlossary);
         tvOut = (TextView) view.findViewById(R.id.tvOut);
+
         //将音标按钮设置为不可见，之后如果是英文翻译才显示
         btnEnPron.setVisibility(View.INVISIBLE);
         btnAmPron.setVisibility(View.INVISIBLE);
+        btnAddToGlossary.setVisibility(View.INVISIBLE);
         //获取每日一句 js
         ConnectivityManager connectivityManager = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo info = connectivityManager.getActiveNetworkInfo();
@@ -98,7 +103,7 @@ public class OnlineFragment extends android.support.v4.app.Fragment {
             @Override
             public void onClick(View v) {
                 word = etInput.getText().toString();
-//                word = "abstract";
+                word = word.toLowerCase();
                 if (isConnect)
                     new Thread() {
                         @Override
@@ -166,6 +171,10 @@ public class OnlineFragment extends android.support.v4.app.Fragment {
             //发音
             btnEnPron.setVisibility(View.VISIBLE);
             btnAmPron.setVisibility(View.VISIBLE);
+            //加入生词本
+            btnAddToGlossary.setVisibility(View.VISIBLE);
+
+            //注册播放按钮事件
             btnEnPron.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -178,15 +187,46 @@ public class OnlineFragment extends android.support.v4.app.Fragment {
                     playFromRemoteURL(translationJs.ph_am_mp3);
                 }
             });
-            //翻译
-            for (int i = 0; i < translationJs.part.size(); i++) {
-                stringBuilder.append(translationJs.part.get(i) + "\n" + "  ");
+            //注册添加生词本按钮事件
+            //拼接用来存到数据库中文翻译
+            final StringBuilder stringBuilder1 = new StringBuilder();
+            for (int i = 0; i < translationJs.parts.size(); i++) {
+                stringBuilder1.append(translationJs.parts.get(i));
+                for (int j = 0; j < translationJs.means.get(i).length(); j++) {
+                    try {
+                        if (j != translationJs.means.get(i).length() - 1)
+                            stringBuilder1.append(translationJs.means.get(i).get(j).toString());
+                        else
+                            stringBuilder1.append(translationJs.means.get(i).get(j).toString()).append("\n");
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            if (DatabaseHelper.queryIsExist(word)) {
+                btnAddToGlossary.setEnabled(false);
+                btnAddToGlossary.setText("已加入生词本");
+            } else {
+                btnAddToGlossary.setEnabled(true);
+                btnAddToGlossary.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        DatabaseHelper.insertGlossary(word, stringBuilder1.toString(), "");
+                        Toast.makeText(getActivity(), "已加入生词本", Toast.LENGTH_SHORT).show();
+                        btnAddToGlossary.setEnabled(false);
+                        btnAddToGlossary.setText("已加入生词本");
+                    }
+                });
+            }
+            //翻译 拼接用来显示的中文翻译
+            for (int i = 0; i < translationJs.parts.size(); i++) {
+                stringBuilder.append(translationJs.parts.get(i)).append("\n").append("  ");
                 for (int j = 0; j < translationJs.means.get(i).length(); j++) {
                     try {
                         if (j != translationJs.means.get(i).length() - 1)
                             stringBuilder.append(translationJs.means.get(i).get(j).toString());
                         else
-                            stringBuilder.append(translationJs.means.get(i).get(j).toString() + "\n");
+                            stringBuilder.append(translationJs.means.get(i).get(j).toString()).append("\n");
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }

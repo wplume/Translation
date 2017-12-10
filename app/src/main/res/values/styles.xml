@@ -1,11 +1,22 @@
 <resources>
 
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
+
+        <item name="windowActionModeOverlay">true</item>
+        <!--<item name="windowActionBarOverlay">true</item>-->
+        <!--<item name="windowNoTitle">true</item>-->
+        <!--<item name="windowActionBar">false</item>-->
+
+        <!--统一颜色、高度-->
+        <!--<style name="CustomActionMode" parent="@style/Widget.AppCompat.ActionMode">-->
+            <!--<item name="background">@color/primary_color</item>-->
+            <!--<item name="height">64dp</item>-->
+        <!--</style>-->
     </style>
 
 </resources>

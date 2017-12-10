@@ -5,9 +5,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.Dictionary;
-import java.util.HashMap;
-import java.util.List;
 
 /**
  * Created by asus on 2017/11/16.
@@ -17,11 +14,12 @@ public class TranslationJs {
     public String ph_am;
     public String ph_en_mp3;
     public String ph_am_mp3;
-    public ArrayList<String> part = new ArrayList<>();
+    public ArrayList<String> parts = new ArrayList<>();
     public ArrayList<JSONArray> means = new ArrayList<>();
 
     TranslationJs(JSONObject jsonObject) {
         try {
+            //toString的参数是缩进的意思
             System.out.println(jsonObject.toString(4));
 
             JSONArray symbols = jsonObject.getJSONArray("symbols");
@@ -33,7 +31,7 @@ public class TranslationJs {
             ph_am_mp3 = js.getString("ph_am_mp3");
             JSONArray parts = js.getJSONArray("parts");
             for (int i = 0; i < parts.length(); i++) {
-                part.add(parts.getJSONObject(i).getString("part"));
+                this.parts.add(parts.getJSONObject(i).getString("part"));
                 means.add(parts.getJSONObject(i).getJSONArray("means"));
             }
         } catch (JSONException e) {

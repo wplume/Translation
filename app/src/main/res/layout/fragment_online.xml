@@ -28,7 +28,7 @@
         android:id="@+id/etInput"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="请输入单词，暂时不支持长句" />
+        android:hint="请输入单词，暂时不支持长句或短语" />
 
     <Button
         android:id="@+id/btnTranslate"
@@ -61,11 +61,13 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
         android:orientation="horizontal">
+
         <TextView
             android:id="@+id/ph_am"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="" />
+
         <Button
             android:id="@+id/btnAmPron"
             style="?android:attr/buttonStyleSmall"
@@ -78,4 +80,20 @@
         android:id="@+id/tvOut"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
+
+    <Button
+        android:id="@+id/btnAddToGlossary"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="加入生词本" />
+    <!--<LinearLayout-->
+    <!--android:id="@+id/search_edit_frame"-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="wrap_content">-->
+    <!--<android.support.v7.widget.SearchView-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="wrap_content">-->
+
+    <!--</android.support.v7.widget.SearchView>-->
+    <!--</LinearLayout>-->
 </LinearLayout>

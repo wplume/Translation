@@ -1,21 +1,45 @@
 package com.example.asus.translation;
 
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
+import java.io.File;
+
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+    private static final String DATABASE_FILENAME = "BioDic.db";
     TextView tvOnline;
     TextView tvOffline;
     TextView tvAbout;
+    boolean isDatabaseFileExist;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        getSupportFragmentManager().beginTransaction().add(R.id.framelayout, new OnlineFragment()).commit();
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+//        DatabaseHelper.deleteDatabase(this);
+        //因为 new DatabaseHelper()无论存在不存在，都会创建一个数据库文件，所以需要提前标志，用来判断需不需要写入数据
+        if ((new File(getDatabasePath(DATABASE_FILENAME).getPath())).exists()) {
+            isDatabaseFileExist = true;
+            System.out.println("数据库文件已存在");
+        } else {
+            isDatabaseFileExist = false;
+            System.out.println("数据库文件不存在");
+        }
+
+        DatabaseHelper databaseHelper = DatabaseHelper.getDatabaseHelper(this);
+        if (!isDatabaseFileExist) {
+            databaseHelper.write();
+        }
+        //设置初始页面
+        getSupportFragmentManager().beginTransaction().add(R.id.main_framelayout, new FragmentOnline()).commit();
         tvOnline = (TextView) findViewById(R.id.tvOnline);
         tvOffline = (TextView) findViewById(R.id.tvOffline);
         tvAbout = (TextView) findViewById(R.id.tvAbout);
@@ -35,21 +59,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if (!tvOnline.isSelected()) {
                     resetAll();
                     tvOnline.setSelected(true);
-                    newFragment(new OnlineFragment());
+                    newFragment(new FragmentOnline());
                 }
                 break;
             case R.id.tvOffline:
                 if (!tvOffline.isSelected()) {
                     resetAll();
                     tvOffline.setSelected(true);
-                    newFragment(new OfflineFragment());
+                    newFragment(new FragmentOffline());
                 }
                 break;
             case R.id.tvAbout:
                 if (!tvAbout.isSelected()) {
                     resetAll();
                     tvAbout.setSelected(true);
+                    newFragment(new FragmentGlossary());
                 }
+                break;
+            case R.id.btnFloat:
                 break;
         }
     }
@@ -61,6 +88,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     void newFragment(Fragment fragment) {
-        getSupportFragmentManager().beginTransaction().replace(R.id.framelayout, fragment).commit();
+        getSupportFragmentManager().beginTransaction().replace(R.id.main_framelayout, fragment).commit();
     }
 }
