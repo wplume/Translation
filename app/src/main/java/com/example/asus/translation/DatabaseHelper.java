@@ -105,7 +105,6 @@ class DatabaseHelper extends SQLiteOpenHelper {
             while (rows.hasNext()) {
                 HSSFRow row = (HSSFRow) rows.next();
                 if (row.getRowNum() != 0) {
-                    System.out.println(row.getRowNum() + " " + row.getCell(0).toString() + " " + row.getCell(1).toString() + " " + row.getCell(2).toString() + "\n");
                     insert(OFFLINE_DICTIONARY_TABLE_NAME, row.getCell(0).toString(), row.getCell(1).toString(), row.getCell(2).toString());
                 }
             }

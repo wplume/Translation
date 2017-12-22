@@ -6,6 +6,8 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.view.ActionMode;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -30,14 +32,22 @@ public class FragmentGlossary extends Fragment {
     ArrayList<String> enList = new ArrayList<>();
     ArrayList<String> zhList = new ArrayList<>();
     ArrayList<String> explanationList = new ArrayList<>();
+    private ActionModeCallback actionModeCallback;
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         view = inflater.inflate(R.layout.fragment_glossary, container, false);
+
+        Toolbar toolbar = (Toolbar) view.findViewById(R.id.toolbar);
+        AppCompatActivity appCompatActivity = (AppCompatActivity) getActivity();
+        appCompatActivity.setSupportActionBar(toolbar);
+        appCompatActivity.setTitle(R.string.glossary);
+
         listView = (ListView) view.findViewById(R.id.listView);
         listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
-        listView.setMultiChoiceModeListener(new ActionModeCallback());
+        actionModeCallback = new ActionModeCallback();
+        listView.setMultiChoiceModeListener(actionModeCallback);
         queryAll();
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -62,11 +72,12 @@ public class FragmentGlossary extends Fragment {
     public void onDestroy() {
         super.onDestroy();
         cursor.close();
+        actionModeCallback.actionMode.finish();
     }
 
     void queryAll() {
         //_id 是以为SimpleCursorAdapter from必须要有一个_id列
-        String[] col = new String[]{DatabaseHelper.EN_WORD_COL1 + " as _id", DatabaseHelper.ZH_WORD_COL2};
+        String[] col = new String[]{DatabaseHelper.EN_WORD_COL1 + " as _id", DatabaseHelper.ZH_WORD_COL2, DatabaseHelper.EXPLANATION};
         //查询所有
         cursor = DatabaseHelper.getDatabase().query(DatabaseHelper.GLOSSARY_TABLE_NAME, col, null, null, null, null, null);
 
@@ -79,17 +90,19 @@ public class FragmentGlossary extends Fragment {
         for (cursor.isBeforeFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
             enList.add(cursor.getString(0));
             zhList.add(cursor.getString(1));
-            explanationList.add("");
+            explanationList.add(cursor.getString(2));
         }
     }
 
     /**
      * Created by asus on 2017/12/9.
      */
-    class ActionModeCallback implements AbsListView.MultiChoiceModeListener {
+    private class ActionModeCallback implements AbsListView.MultiChoiceModeListener {
+        private ActionMode actionMode;
 
         @Override
         public void onItemCheckedStateChanged(ActionMode mode, int position, long id, boolean checked) {
+            actionMode = mode;
             adapterLV.notifyDataSetChanged();
         }
 

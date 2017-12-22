@@ -76,8 +76,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     newFragment(new FragmentGlossary());
                 }
                 break;
-            case R.id.btnFloat:
-                break;
         }
     }
 

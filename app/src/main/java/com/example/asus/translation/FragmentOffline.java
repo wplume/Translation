@@ -5,6 +5,8 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,7 +30,16 @@ public class FragmentOffline extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         view = inflater.inflate(R.layout.fragment_offline, container, false);
+
+        Toolbar toolbar = (Toolbar) view.findViewById(R.id.toolbar);
+        AppCompatActivity appCompatActivity = (AppCompatActivity) getActivity();
+        appCompatActivity.setSupportActionBar(toolbar);
+        appCompatActivity.setTitle(R.string.offline);
+
+
         listView = (ListView) view.findViewById(R.id.listView);
+//        listView.addHeaderView(LayoutInflater.from(getActivity()).inflate(R.layout.footer_layout, null, false));
+//        listView.addFooterView(LayoutInflater.from(getActivity()).inflate(R.layout.footer_layout, null, false));
         database = DatabaseHelper.getDatabaseHelper(getActivity()).getWritableDatabase();
         queryAll();
         return view;

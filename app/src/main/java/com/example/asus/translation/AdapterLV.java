@@ -14,9 +14,9 @@ import android.widget.TextView;
  * Created by asus on 2017/12/8.
  */
 class AdapterLV extends BaseAdapter {
-    Context context;
-    Cursor cursor;
-    boolean isVisible = false;
+    private Context context;
+    private Cursor cursor;
+    private boolean isVisible = false;
 
     AdapterLV(Context context, Cursor cursor) {
         this.context = context;
@@ -65,9 +65,9 @@ class AdapterLV extends BaseAdapter {
         return convertView;
     }
 
-    ViewHolder viewHolder;
+    private ViewHolder viewHolder;
 
-    class ViewHolder {
+    private class ViewHolder {
         TextView textView1;
         TextView textView2;
         CheckBox checkBox;

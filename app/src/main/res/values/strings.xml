@@ -3,4 +3,12 @@
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="this_is_a_image">this is a image</string>
+    <string name="online">在线</string>
+    <string name="offline">离线</string>
+    <string name="glossary">生词本</string>
+    <string name="content">content</string>
+    <string name="note">note</string>
+    <string name="hint">请输入单词，暂时不支持长句或短语</string>
+    <string name="translation">翻译</string>
 </resources>

@@ -1,6 +1,5 @@
 package com.example.asus.translation;
 
-import android.content.ContentValues;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -11,6 +10,9 @@ import android.net.NetworkInfo;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Bundle;
+import android.provider.Settings;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -30,6 +32,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Locale;
 
 public class FragmentOnline extends android.support.v4.app.Fragment {
@@ -56,12 +59,22 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_online, container, false);
-        System.out.println("创建了新的fragment");
-        simpleDateFormat = new SimpleDateFormat("yyyy-mm-dd", Locale.CHINA);
-        date = simpleDateFormat.format(new java.util.Date());
-        System.out.println(date);
 
-        imageView = (ImageView) view.findViewById(R.id.imageView);
+        simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.CHINA);
+        date = simpleDateFormat.format(new Date());
+        Toast.makeText(getActivity(), date, Toast.LENGTH_SHORT).show();
+
+        Toolbar toolbar = (Toolbar) view.findViewById(R.id.toolbar);
+        AppCompatActivity appCompatActivity = (AppCompatActivity) getActivity();
+        appCompatActivity.setSupportActionBar(toolbar);
+        appCompatActivity.setTitle(date);
+
+//        CollapsingToolbarLayout collapsingToolbarLayout = (CollapsingToolbarLayout) view.findViewById(R.id.collapsingToolbarLayout);
+//        AppBarLayout appBarLayout = (AppBarLayout) view.findViewById(R.id.appBarLayout);
+//        appBarLayout.setExpanded(true, true);
+//        collapsingToolbarLayout.setTitle(date);
+
+        imageView = (ImageView) view.findViewById(R.id.ivDailyPic);
         content = (TextView) view.findViewById(R.id.content);
         ph_en = (TextView) view.findViewById(R.id.ph_en);
         ph_am = (TextView) view.findViewById(R.id.ph_am);
@@ -95,7 +108,7 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
                     Message message = new Message();
                     message.what = 0;
                     message.obj = dailySentenceJs;
-                    handler.sendMessage(message);
+                    sentenceHandler.sendMessage(message);
                 }
             }.start();
         //注册翻译事件
@@ -122,8 +135,8 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
         });
         return view;
     }
-
-    public Handler handler = new Handler() {
+    //设置每日一句
+    public Handler sentenceHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
@@ -148,6 +161,7 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
             }
         }
     };
+    //设置每日一图的图片
     public Handler picHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -156,6 +170,7 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
             imageView.setImageBitmap(bitmap);
         }
     };
+    //处理翻译相关信息
     public Handler translationHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -188,7 +203,7 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
                 }
             });
             //注册添加生词本按钮事件
-            //拼接用来存到数据库中文翻译
+            //拼接存到数据库中文翻译
             final StringBuilder stringBuilder1 = new StringBuilder();
             for (int i = 0; i < translationJs.parts.size(); i++) {
                 stringBuilder1.append(translationJs.parts.get(i));

@@ -1,33 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:layout_height="match_parent">
 
-    <LinearLayout
+    <!--fragment的主容器 （主）FragmentOnline、FragmentOffline、FragmentGlossary-->
+    <FrameLayout
+        android:id="@+id/main_framelayout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:layout_height="match_parent">
 
-        <android.support.v7.widget.Toolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="?attr/colorPrimary"
-            android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-            app:popupTheme="@style/ThemeOverlay.AppCompat.Light">
-
-        </android.support.v7.widget.Toolbar>
-        <!--fragment的主容器(FragmentOnline、FragmentOffline、FragmentGlossary)-->
-        <FrameLayout
-            android:id="@+id/main_framelayout"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-        </FrameLayout>
-    </LinearLayout>
-
+    </FrameLayout>
     <!--底部导航栏-->
     <LinearLayout
         android:layout_width="match_parent"
@@ -43,8 +25,8 @@
             android:layout_weight="1"
             android:drawableTop="@drawable/selector_btn"
             android:gravity="center"
-            android:textColor="@drawable/selector_tv"
-            android:text="在线" />
+            android:text="@string/online"
+            android:textColor="@drawable/selector_tv" />
 
         <TextView
             android:id="@+id/tvOffline"
@@ -53,8 +35,8 @@
             android:layout_weight="1"
             android:drawableTop="@drawable/selector_btn"
             android:gravity="center"
-            android:textColor="@drawable/selector_tv"
-            android:text="离线" />
+            android:text="@string/offline"
+            android:textColor="@drawable/selector_tv" />
 
         <TextView
             android:id="@+id/tvAbout"
@@ -63,10 +45,10 @@
             android:layout_weight="1"
             android:drawableTop="@drawable/selector_btn"
             android:gravity="center"
-            android:textColor="@drawable/selector_tv"
-            android:text="关于" />
+            android:text="@string/glossary"
+            android:textColor="@drawable/selector_tv" />
     </LinearLayout>
-    <!--这个是用来作为 FragmentCard 的父容器-->
+    <!--这个是用来作为 FragmentCard（副） 的父容器-->
     <FrameLayout
         android:id="@+id/aux_framelayout"
         android:layout_width="match_parent"
