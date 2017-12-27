@@ -1,11 +1,10 @@
 package com.example.asus.translation;
 
+import android.content.Intent;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
@@ -49,6 +48,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         tvAbout.setOnClickListener(this);
 
         tvOnline.setSelected(true);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        setIntent(intent);
+        if (searchCallBack != null)
+            searchCallBack.setSearchCallback();
+    }
+
+    private SearchCallBack searchCallBack;
+
+    public void setSearchCallBack(SearchCallBack searchCallBack) {
+        this.searchCallBack = searchCallBack;
+    }
+
+    interface SearchCallBack {
+        void setSearchCallback();
     }
 
     // TODO: 2017/11/29 将fragment缓存起来

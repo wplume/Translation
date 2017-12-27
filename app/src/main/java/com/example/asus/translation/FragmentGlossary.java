@@ -72,7 +72,8 @@ public class FragmentGlossary extends Fragment {
     public void onDestroy() {
         super.onDestroy();
         cursor.close();
-        actionModeCallback.actionMode.finish();
+        if (actionModeCallback.actionMode != null)
+            actionModeCallback.actionMode.finish();
     }
 
     void queryAll() {

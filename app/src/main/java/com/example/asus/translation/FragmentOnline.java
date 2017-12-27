@@ -1,5 +1,6 @@
 package com.example.asus.translation;
 
+import android.app.SearchManager;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -10,8 +11,10 @@ import android.net.NetworkInfo;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Bundle;
-import android.provider.Settings;
+import android.provider.SearchRecentSuggestions;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.Toolbar;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -39,8 +42,6 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
     ImageView imageView;
     TextView content;
     TextView note;
-    EditText etInput;
-    Button btnTranslate;
     Button btnEnPron;
     Button btnAmPron;
     Button btnAddToGlossary;
@@ -55,51 +56,27 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
     String word;
 
     boolean isConnect;
+    private FloatingActionButton btnFloat;
+    private View view;
+    private Toolbar toolbar;
+    private CardView cardView;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_online, container, false);
+        view = inflater.inflate(R.layout.fragment_online, container, false);
 
-        simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.CHINA);
-        date = simpleDateFormat.format(new Date());
-        Toast.makeText(getActivity(), date, Toast.LENGTH_SHORT).show();
+        initDate();
 
-        Toolbar toolbar = (Toolbar) view.findViewById(R.id.toolbar);
-        AppCompatActivity appCompatActivity = (AppCompatActivity) getActivity();
-        appCompatActivity.setSupportActionBar(toolbar);
-        appCompatActivity.setTitle(date);
+        initViews();
 
-//        CollapsingToolbarLayout collapsingToolbarLayout = (CollapsingToolbarLayout) view.findViewById(R.id.collapsingToolbarLayout);
-//        AppBarLayout appBarLayout = (AppBarLayout) view.findViewById(R.id.appBarLayout);
-//        appBarLayout.setExpanded(true, true);
-//        collapsingToolbarLayout.setTitle(date);
+        setToolbar();
 
-        imageView = (ImageView) view.findViewById(R.id.ivDailyPic);
-        content = (TextView) view.findViewById(R.id.content);
-        ph_en = (TextView) view.findViewById(R.id.ph_en);
-        ph_am = (TextView) view.findViewById(R.id.ph_am);
-        note = (TextView) view.findViewById(R.id.note);
-        etInput = (EditText) view.findViewById(R.id.etInput);
-        btnTranslate = (Button) view.findViewById(R.id.btnTranslate);
-        btnEnPron = (Button) view.findViewById(R.id.btnEnPron);
-        btnAmPron = (Button) view.findViewById(R.id.btnAmPron);
-        btnAddToGlossary = (Button) view.findViewById(R.id.btnAddToGlossary);
-        tvOut = (TextView) view.findViewById(R.id.tvOut);
+        initVisibility();
 
-        //将音标按钮设置为不可见，之后如果是英文翻译才显示
-        btnEnPron.setVisibility(View.INVISIBLE);
-        btnAmPron.setVisibility(View.INVISIBLE);
-        btnAddToGlossary.setVisibility(View.INVISIBLE);
-        //获取每日一句 js
-        ConnectivityManager connectivityManager = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo info = connectivityManager.getActiveNetworkInfo();
-        if (info == null) {
-            Toast.makeText(getActivity(), "设备没有联网", Toast.LENGTH_LONG).show();
-            isConnect = false;
-        } else isConnect = true;
+        setNetworkStatus();
 
         // TODO: 2017/11/27 连有但是WiFi没有网的情况，还有手机欠费的情况
-        if (isConnect)
+        if (isConnect) {
             new Thread() {
                 @Override
                 public void run() {
@@ -111,30 +88,118 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
                     sentenceHandler.sendMessage(message);
                 }
             }.start();
-        //注册翻译事件
-        btnTranslate.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                word = etInput.getText().toString();
-                word = word.toLowerCase();
-                if (isConnect)
-                    new Thread() {
+
+            //点击search dialog的确定按钮，或者软键盘上的确定按钮，将启动一个searchable activity（目前是MainActivity本身）
+            btnFloat.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    //提前设置好搜索回调函数
+                    ((MainActivity) getActivity()).setSearchCallBack(new MainActivity.SearchCallBack() {
                         @Override
-                        public void run() {
-                            super.run();
-                            String url = String.format("http://dict-co.iciba.com/api/dictionary.php?w=%s&type=json&key=%s", word, key);
-                            TranslationJs translationJs = new TranslationJs(getJSON(url));
-                            Message message = new Message();
-                            message.what = 0;
-                            message.obj = translationJs;
-                            translationHandler.sendMessage(message);
+                        public void setSearchCallback() {
+                            searchRequest();
                         }
-                    }.start();
-                else Toast.makeText(getActivity(), "无法加载", Toast.LENGTH_SHORT).show();
-            }
-        });
+                    });
+                    //启动search dialog（系统负责）
+                    getActivity().onSearchRequested();
+                }
+            });
+        }
+        //注册翻译事件
+//        btnTranslate.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                word = etInput.getText().toString();
+//                word = word.toLowerCase();
+//                if (isConnect)
+//                    new Thread() {
+//                        @Override
+//                        public void run() {
+//                            super.run();
+//                            String url = String.format("http://dict-co.iciba.com/api/dictionary.php?w=%s&type=json&key=%s", word, key);
+//                            TranslationJs translationJs = new TranslationJs(getJSON(url));
+//                            Message message = new Message();
+//                            message.what = 0;
+//                            message.obj = translationJs;
+//                            translationHandler.sendMessage(message);
+//                        }
+//                    }.start();
+//                else Toast.makeText(getActivity(), "无法加载", Toast.LENGTH_SHORT).show();
+//            }
+//        });
         return view;
     }
+
+
+    private void initVisibility() {
+        btnEnPron.setVisibility(View.INVISIBLE);
+        btnAmPron.setVisibility(View.INVISIBLE);
+        btnAddToGlossary.setVisibility(View.INVISIBLE);
+    }
+
+    private void initViews() {
+        toolbar = (Toolbar) view.findViewById(R.id.toolbar);
+        imageView = (ImageView) view.findViewById(R.id.ivDailyPic);
+        content = (TextView) view.findViewById(R.id.content);
+        ph_en = (TextView) view.findViewById(R.id.ph_en);
+        ph_am = (TextView) view.findViewById(R.id.ph_am);
+        note = (TextView) view.findViewById(R.id.note);
+        btnEnPron = (Button) view.findViewById(R.id.btnEnPron);
+        btnAmPron = (Button) view.findViewById(R.id.btnAmPron);
+        btnAddToGlossary = (Button) view.findViewById(R.id.btnAddToGlossary);
+        tvOut = (TextView) view.findViewById(R.id.tvOut);
+        btnFloat = (FloatingActionButton) view.findViewById(R.id.btnFloat);
+        cardView = (CardView) view.findViewById(R.id.cardView);
+    }
+
+    private void initDate() {
+        simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.CHINA);
+        date = simpleDateFormat.format(new Date());
+    }
+
+    private void setToolbar() {
+        AppCompatActivity appCompatActivity = (AppCompatActivity) getActivity();
+        appCompatActivity.setSupportActionBar(toolbar);
+        appCompatActivity.setTitle(date);
+    }
+
+    private void setNetworkStatus() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo info = connectivityManager.getActiveNetworkInfo();
+        if (info == null) {
+            Toast.makeText(getActivity(), "设备没有联网", Toast.LENGTH_LONG).show();
+            isConnect = false;
+        } else isConnect = true;
+    }
+
+    private void searchRequest() {
+        word = getActivity().getIntent().getStringExtra(SearchManager.QUERY);
+        word = word.toLowerCase();
+
+        //用户点击确定之后，将关键字保存到历史纪录，声明好权限
+        SearchRecentSuggestions searchRecentSuggestions =
+                new SearchRecentSuggestions(
+                        getActivity(),
+                        MySuggestionProvider.AUTHORITY,
+                        MySuggestionProvider.MODE);
+        searchRecentSuggestions.saveRecentQuery(word, null);
+
+        if (isConnect)
+            new Thread() {
+                @Override
+                public void run() {
+                    super.run();
+                    String url = String.format("http://dict-co.iciba.com/api/dictionary.php?w=%s&type=json&key=%s", word, key);
+                    TranslationJs translationJs = new TranslationJs(getJSON(url));
+                    Message message = new Message();
+                    message.what = 0;
+                    message.obj = translationJs;
+                    translationHandler.sendMessage(message);
+                }
+            }.start();
+        else Toast.makeText(getActivity(), "无法加载", Toast.LENGTH_SHORT).show();
+    }
+
     //设置每日一句
     public Handler sentenceHandler = new Handler() {
         @Override
@@ -189,6 +254,8 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
             //加入生词本
             btnAddToGlossary.setVisibility(View.VISIBLE);
 
+            cardView.setVisibility(View.VISIBLE);
+
             //注册播放按钮事件
             btnEnPron.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -235,7 +302,7 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
             }
             //翻译 拼接用来显示的中文翻译
             for (int i = 0; i < translationJs.parts.size(); i++) {
-                stringBuilder.append(translationJs.parts.get(i)).append("\n").append("  ");
+                stringBuilder.append(translationJs.parts.get(i)).append("  ");
                 for (int j = 0; j < translationJs.means.get(i).length(); j++) {
                     try {
                         if (j != translationJs.means.get(i).length() - 1)
