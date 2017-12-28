@@ -7,12 +7,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.CheckBox;
+import android.widget.Filter;
+import android.widget.Filterable;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
-/**
- * Created by asus on 2017/12/8.
- */
 class AdapterLV extends BaseAdapter {
     private Context context;
     private Cursor cursor;
@@ -25,6 +25,7 @@ class AdapterLV extends BaseAdapter {
 
     @Override
     public int getCount() {
+//        Toast.makeText(context, Integer.toString(cursor.getCount()), Toast.LENGTH_SHORT).show();
         return cursor.getCount();
     }
 
@@ -73,7 +74,7 @@ class AdapterLV extends BaseAdapter {
         CheckBox checkBox;
     }
 
-    public void setVisible(boolean visible) {
+    void setVisible(boolean visible) {
         isVisible = visible;
     }
 }

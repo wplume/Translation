@@ -20,7 +20,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -180,8 +179,8 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
         SearchRecentSuggestions searchRecentSuggestions =
                 new SearchRecentSuggestions(
                         getActivity(),
-                        MySuggestionProvider.AUTHORITY,
-                        MySuggestionProvider.MODE);
+                        OnlineSuggestionProvider.AUTHORITY,
+                        OnlineSuggestionProvider.MODE);
         searchRecentSuggestions.saveRecentQuery(word, null);
 
         if (isConnect)

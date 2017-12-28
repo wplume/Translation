@@ -116,7 +116,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
         }
     }
 
-    void insert(String table_name, String en_word, String zh_word, String explanation) {
+    private void insert(String table_name, String en_word, String zh_word, String explanation) {
         ContentValues values = new ContentValues();
         values.put(EN_WORD_COL1, en_word);
         values.put(ZH_WORD_COL2, zh_word);
@@ -127,23 +127,24 @@ class DatabaseHelper extends SQLiteOpenHelper {
         values.clear();
     }
 
-    private static Cursor query(String tableName, String col, String value) {
-        return database.query(tableName, new String[]{col}, DatabaseHelper.EN_WORD_COL1 + " like?", new String[]{value}, null, null, null);
+    static Cursor query(String tableName, String[] col, String value) {
+        return database.query(
+                tableName,
+                col,
+                DatabaseHelper.EN_WORD_COL1 + " like?",
+                new String[]{value},
+                null, null, null);
     }
 
-    public static boolean queryIsExist(String enWord) {
+    static boolean queryIsExist(String enWord) {
         boolean isExist;
-        Cursor cursor = query(DatabaseHelper.GLOSSARY_TABLE_NAME, DatabaseHelper.EN_WORD_COL1, enWord);
-        if (cursor.getCount() != 0) {
-            isExist = true;
-        } else {
-            isExist = false;
-        }
+        Cursor cursor = query(DatabaseHelper.GLOSSARY_TABLE_NAME, new String[]{DatabaseHelper.EN_WORD_COL1}, enWord);
+        isExist = cursor.getCount() != 0;
         cursor.close();
         return isExist;
     }
 
-    public static void insertGlossary(String enWord, String zhWord, String explanation) {
+    static void insertGlossary(String enWord, String zhWord, String explanation) {
         ContentValues values = new ContentValues();
         values.put(DatabaseHelper.EN_WORD_COL1, enWord);
         values.put(DatabaseHelper.ZH_WORD_COL2, zhWord);

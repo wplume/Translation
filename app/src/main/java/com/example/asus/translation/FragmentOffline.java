@@ -15,6 +15,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.Toast;
@@ -31,6 +32,7 @@ public class FragmentOffline extends Fragment {
     AdapterLV adapterLV;
     View view;
     Cursor cursor;
+    private String[] col;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -62,23 +64,40 @@ public class FragmentOffline extends Fragment {
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.search, menu);
-        SearchManager searchManager = (SearchManager) getActivity().getSystemService(Context.SEARCH_SERVICE);
-        SearchView searchView = (SearchView) menu.findItem(R.id.search).getActionView();
 
-        searchView.setSearchableInfo(searchManager.getSearchableInfo(getActivity().getComponentName()));
-        searchView.setIconifiedByDefault(true);
+        final SearchView searchView = (SearchView) menu.findItem(R.id.search).getActionView();
+
+//        searchView.setIconifiedByDefault(true);
+//        searchView.setIconified(true);
+
         searchView.setSubmitButtonEnabled(true);
+
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
+                closeSoftKeyBoard();
                 return false;
             }
 
             @Override
             public boolean onQueryTextChange(String newText) {
+                cursor = DatabaseHelper.query(
+                        DatabaseHelper.OFFLINE_DICTIONARY_TABLE_NAME,
+                        col,
+                        newText + "%");
+                adapterLV = new AdapterLV(getActivity(), cursor);
+                listView.setAdapter(adapterLV);
                 return false;
             }
         });
+    }
+
+    /**
+     * 关闭软键盘
+     */
+    private void closeSoftKeyBoard() {
+        ((InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE))
+                .hideSoftInputFromWindow(getActivity().getWindow().getDecorView().getWindowToken(), 0);
     }
 
     private ArrayList<String> enList = new ArrayList<>();
@@ -87,7 +106,7 @@ public class FragmentOffline extends Fragment {
 
     void queryAll() {
         //_id 是以为SimpleCursorAdapter from必须要有一个_id列
-        String[] col = new String[]{DatabaseHelper.EN_WORD_COL1 + " as _id", DatabaseHelper.ZH_WORD_COL2, DatabaseHelper.EXPLANATION};
+        col = new String[]{DatabaseHelper.EN_WORD_COL1 + " as _id", DatabaseHelper.ZH_WORD_COL2, DatabaseHelper.EXPLANATION};
         //查询所有
         cursor = database.query(DatabaseHelper.OFFLINE_DICTIONARY_TABLE_NAME, col, null, null, null, null, null);
 
@@ -109,6 +128,7 @@ public class FragmentOffline extends Fragment {
             @Override
             // TODO: 2017/11/29 id不知道是什么鬼
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                closeSoftKeyBoard();
                 //第一个参数是父级，第二个参数是当前item，第三个是在listView中适配器里的位置，id是当前item在ListView里的第几行的位置
                 Bundle bundle = new Bundle();
                 bundle.putStringArrayList(DatabaseHelper.EN_WORD_COL1, enList);
