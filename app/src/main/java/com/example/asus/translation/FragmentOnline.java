@@ -47,8 +47,8 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
     TextView ph_en;
     TextView ph_am;
     TextView tvOut;
+    TextView tvWord;
     String url = "http://open.iciba.com/dsapi/?date=";
-    String translationUrl = "http://dict-co.iciba.com/api/dictionary.php";
     String key = "8B1845F228CA3D723DC68AEF651CCCDD";
     SimpleDateFormat simpleDateFormat;
     String date;
@@ -147,6 +147,7 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
         btnAmPron = (Button) view.findViewById(R.id.btnAmPron);
         btnAddToGlossary = (Button) view.findViewById(R.id.btnAddToGlossary);
         tvOut = (TextView) view.findViewById(R.id.tvOut);
+        tvWord = (TextView) view.findViewById(R.id.tvWord);
         btnFloat = (FloatingActionButton) view.findViewById(R.id.btnFloat);
         cardView = (CardView) view.findViewById(R.id.cardView);
     }
@@ -175,57 +176,64 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
         word = getActivity().getIntent().getStringExtra(SearchManager.QUERY);
         word = word.toLowerCase();
 
-        //用户点击确定之后，将关键字保存到历史纪录，声明好权限
-        SearchRecentSuggestions searchRecentSuggestions =
-                new SearchRecentSuggestions(
-                        getActivity(),
-                        OnlineSuggestionProvider.AUTHORITY,
-                        OnlineSuggestionProvider.MODE);
-        searchRecentSuggestions.saveRecentQuery(word, null);
+        for (int i = 0; i < word.length(); i++) {
+            char c = word.charAt(i);
+            if (c >= 'a' && c <= 'z') {
+                if (i == word.length() - 1) {
 
-        if (isConnect)
-            new Thread() {
-                @Override
-                public void run() {
-                    super.run();
-                    String url = String.format("http://dict-co.iciba.com/api/dictionary.php?w=%s&type=json&key=%s", word, key);
-                    TranslationJs translationJs = new TranslationJs(getJSON(url));
-                    Message message = new Message();
-                    message.what = 0;
-                    message.obj = translationJs;
-                    translationHandler.sendMessage(message);
+                    //用户点击确定之后，将关键字保存到历史纪录，声明好权限
+                    SearchRecentSuggestions searchRecentSuggestions =
+                            new SearchRecentSuggestions(
+                                    getActivity(),
+                                    OnlineSuggestionProvider.AUTHORITY,
+                                    OnlineSuggestionProvider.MODE);
+                    searchRecentSuggestions.saveRecentQuery(word, null);
+
+                    if (isConnect)
+                        new Thread() {
+                            @Override
+                            public void run() {
+                                super.run();
+                                String url = String.format("http://dict-co.iciba.com/api/dictionary.php?w=%s&type=json&key=%s", word, key);
+                                TranslationJs translationJs = new TranslationJs(getJSON(url));
+                                Message message = new Message();
+                                message.obj = translationJs;
+                                translationHandler.sendMessage(message);
+                            }
+                        }.start();
+                    else Toast.makeText(getActivity(), "无法加载", Toast.LENGTH_SHORT).show();
                 }
-            }.start();
-        else Toast.makeText(getActivity(), "无法加载", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(getActivity(), "请输入正确的字符", Toast.LENGTH_SHORT).show();
+                break;
+            }
+        }
+
     }
 
-    //设置每日一句
+    //配置每日一句
     public Handler sentenceHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
-            switch (msg.what) {
-                case 0:
-                    final DailySentenceJs dailySentenceJs = (DailySentenceJs) msg.obj;
-                    content.setText(dailySentenceJs.content);
-                    note.setText(dailySentenceJs.note);
+            final DailySentenceJs dailySentenceJs = (DailySentenceJs) msg.obj;
+            content.setText(dailySentenceJs.content);
+            note.setText(dailySentenceJs.note);
 
-                    //开启新的线程获取图片
-                    new Thread() {
-                        @Override
-                        public void run() {
-                            super.run();
-                            Message message = new Message();
-                            message.what = 0;
-                            message.obj = getPic(dailySentenceJs.picture);
-                            picHandler.sendMessage(message);
-                        }
-                    }.start();
-                    break;
-            }
+            //开启新的线程获取图片
+            new Thread() {
+                @Override
+                public void run() {
+                    super.run();
+                    Message message = new Message();
+                    message.what = 0;
+                    message.obj = getPic(dailySentenceJs.picture);
+                    picHandler.sendMessage(message);
+                }
+            }.start();
         }
     };
-    //设置每日一图的图片
+    //配置每日一图的图片
     public Handler picHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -234,7 +242,7 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
             imageView.setImageBitmap(bitmap);
         }
     };
-    //处理翻译相关信息
+    //配置翻译相关信息
     public Handler translationHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -250,8 +258,6 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
             //发音
             btnEnPron.setVisibility(View.VISIBLE);
             btnAmPron.setVisibility(View.VISIBLE);
-            //加入生词本
-            btnAddToGlossary.setVisibility(View.VISIBLE);
 
             cardView.setVisibility(View.VISIBLE);
 
@@ -259,13 +265,17 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
             btnEnPron.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    playFromRemoteURL(translationJs.ph_en_mp3);
+                    if (translationJs.ph_en_mp3 != null && !translationJs.ph_en_mp3.equals(""))
+                        playFromRemoteURL(translationJs.ph_en_mp3);
+                    else Toast.makeText(getActivity(), "无音源", Toast.LENGTH_SHORT).show();
                 }
             });
             btnAmPron.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    playFromRemoteURL(translationJs.ph_am_mp3);
+                    if (translationJs.ph_am_mp3 != null && !translationJs.ph_am_mp3.equals(""))
+                        playFromRemoteURL(translationJs.ph_am_mp3);
+                    else Toast.makeText(getActivity(), "无音源", Toast.LENGTH_SHORT).show();
                 }
             });
             //注册添加生词本按钮事件
@@ -284,21 +294,25 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
                     }
                 }
             }
-            if (DatabaseHelper.queryIsExist(word)) {
-                btnAddToGlossary.setEnabled(false);
-                btnAddToGlossary.setText("已加入生词本");
-            } else {
-                btnAddToGlossary.setEnabled(true);
-                btnAddToGlossary.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        DatabaseHelper.insertGlossary(word, stringBuilder1.toString(), "");
-                        Toast.makeText(getActivity(), "已加入生词本", Toast.LENGTH_SHORT).show();
-                        btnAddToGlossary.setEnabled(false);
-                        btnAddToGlossary.setText("已加入生词本");
-                    }
-                });
+            if (translationJs.word.equals("无法查询该单词")) {
+
+                if (DatabaseHelper.queryIsExist(word)) {
+                    btnAddToGlossary.setEnabled(false);
+                    btnAddToGlossary.setText("已加入生词本");
+                } else {
+                    btnAddToGlossary.setEnabled(true);
+                    btnAddToGlossary.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            DatabaseHelper.insertGlossary(word, stringBuilder1.toString(), "");
+                            Toast.makeText(getActivity(), "已加入生词本", Toast.LENGTH_SHORT).show();
+                            btnAddToGlossary.setEnabled(false);
+                            btnAddToGlossary.setText("已加入生词本");
+                        }
+                    });
+                }
             }
+
             //翻译 拼接用来显示的中文翻译
             for (int i = 0; i < translationJs.parts.size(); i++) {
                 stringBuilder.append(translationJs.parts.get(i)).append("  ");
@@ -314,6 +328,7 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
                 }
             }
             tvOut.setText(stringBuilder.toString());
+            tvWord.setText(translationJs.word);
         }
     };
 

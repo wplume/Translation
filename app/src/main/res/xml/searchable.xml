@@ -2,7 +2,7 @@
 <searchable xmlns:android="http://schemas.android.com/apk/res/android"
     android:hint="@string/hint"
     android:label="@string/app_name"
-    android:searchSuggestAuthority="com.example.asus.translation.MySuggestionProvider"
+    android:searchSuggestAuthority="com.example.asus.translation.OnlineSuggestionProvider"
     android:searchSuggestSelection=" ?">
 
 </searchable>

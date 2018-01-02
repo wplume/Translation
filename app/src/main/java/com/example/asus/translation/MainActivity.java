@@ -3,6 +3,8 @@ package com.example.asus.translation;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
@@ -16,6 +18,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     TextView tvOffline;
     TextView tvAbout;
     boolean isDatabaseFileExist;
+    private FragmentOnline fragmentOnline;
+    private FragmentOffline fragmentOffline;
+    private FragmentGlossary fragmentGlossary;
+    private FragmentManager fragmentManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,8 +43,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (!isDatabaseFileExist) {
             databaseHelper.write();
         }
+
+        fragmentManager = getSupportFragmentManager();
         //设置初始页面
-        getSupportFragmentManager().beginTransaction().add(R.id.main_framelayout, new FragmentOnline()).commit();
+        fragmentOnline = new FragmentOnline();
+        fragmentManager.beginTransaction().add(R.id.main_framelayout, fragmentOnline).commit();
+
         tvOnline = (TextView) findViewById(R.id.tvOnline);
         tvOffline = (TextView) findViewById(R.id.tvOffline);
         tvAbout = (TextView) findViewById(R.id.tvAbout);
@@ -67,41 +77,56 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         void setSearchCallback();
     }
 
-    // TODO: 2017/11/29 将fragment缓存起来
     @Override
     public void onClick(View v) {
+        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        if (fragmentOnline != null) fragmentTransaction.hide(fragmentOnline);
+        if (fragmentOffline != null) fragmentTransaction.hide(fragmentOffline);
+        if (fragmentGlossary != null) fragmentTransaction.hide(fragmentGlossary);
         switch (v.getId()) {
             case R.id.tvOnline:
                 if (!tvOnline.isSelected()) {
-                    resetAll();
+                    resetAllSelected();
                     tvOnline.setSelected(true);
-                    newFragment(new FragmentOnline());
+                    if (fragmentOnline == null) {
+                        fragmentOnline = new FragmentOnline();
+                        fragmentTransaction.add(R.id.main_framelayout, fragmentOnline);
+                    } else {
+                        fragmentTransaction.show(fragmentOnline);
+                    }
                 }
                 break;
             case R.id.tvOffline:
                 if (!tvOffline.isSelected()) {
-                    resetAll();
+                    resetAllSelected();
                     tvOffline.setSelected(true);
-                    newFragment(new FragmentOffline());
+                    if (fragmentOffline == null) {
+                        fragmentOffline = new FragmentOffline();
+                        fragmentTransaction.add(R.id.main_framelayout, fragmentOffline);
+                    } else {
+                        fragmentTransaction.show(fragmentOffline);
+                    }
                 }
                 break;
             case R.id.tvAbout:
                 if (!tvAbout.isSelected()) {
-                    resetAll();
+                    resetAllSelected();
                     tvAbout.setSelected(true);
-                    newFragment(new FragmentGlossary());
+                    if (fragmentGlossary == null) {
+                        fragmentGlossary = new FragmentGlossary();
+                        fragmentTransaction.add(R.id.main_framelayout, fragmentGlossary);
+                    } else {
+                        fragmentTransaction.show(fragmentGlossary);
+                    }
                 }
                 break;
         }
+        fragmentTransaction.commit();
     }
 
-    void resetAll() {
+    void resetAllSelected() {
         tvOnline.setSelected(false);
         tvOffline.setSelected(false);
         tvAbout.setSelected(false);
-    }
-
-    void newFragment(Fragment fragment) {
-        getSupportFragmentManager().beginTransaction().replace(R.id.main_framelayout, fragment).commit();
     }
 }
