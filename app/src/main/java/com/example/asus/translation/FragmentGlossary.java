@@ -59,7 +59,7 @@ public class FragmentGlossary extends Fragment {
                 bundle.putStringArrayList(DatabaseHelper.ZH_WORD_COL2, zhList);
                 bundle.putStringArrayList(DatabaseHelper.EXPLANATION, explanationList);
                 bundle.putInt("position", position);
-                FragmentCard fragmentCard = new FragmentCard();
+                FragmentCardMode fragmentCard = new FragmentCardMode();
                 fragmentCard.setArguments(bundle);
                 getActivity().getSupportFragmentManager().beginTransaction().addToBackStack(null).
                         replace(R.id.aux_framelayout, fragmentCard).commit();

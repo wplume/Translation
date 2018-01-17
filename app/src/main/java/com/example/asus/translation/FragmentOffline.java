@@ -1,7 +1,6 @@
 package com.example.asus.translation;
 
 
-import android.app.SearchManager;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -18,7 +17,6 @@ import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ListView;
-import android.widget.Toast;
 
 import java.util.ArrayList;
 
@@ -136,7 +134,7 @@ public class FragmentOffline extends Fragment {
                 bundle.putStringArrayList(DatabaseHelper.EXPLANATION, explanationList);
                 bundle.putInt("position", position);
                 bundle.putBoolean("isVisible_btnFloat", true);
-                FragmentCard fragmentCard = new FragmentCard();
+                FragmentCardMode fragmentCard = new FragmentCardMode();
                 fragmentCard.setArguments(bundle);
                 getActivity().getSupportFragmentManager().beginTransaction().addToBackStack(null).
                         replace(R.id.aux_framelayout, fragmentCard).commit();

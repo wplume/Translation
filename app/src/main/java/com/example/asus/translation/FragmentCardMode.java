@@ -12,15 +12,16 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 
-/**
- * Created by asus on 2017/12/3.
- */
-public class FragmentCard extends Fragment {
+public class FragmentCardMode extends Fragment {
     FloatingActionButton btnFloat;
+    private View decorView;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_card, container, false);
+
+        setFullScreen();
+
         final ViewPager viewPager = (ViewPager) view.findViewById(R.id.viewpager);
 
         ArrayList<View> viewArrayList = new ArrayList<>();
@@ -66,6 +67,21 @@ public class FragmentCard extends Fragment {
                 }
             });
         }
+
         return view;
     }
+
+    private void setFullScreen() {
+        decorView = getActivity().getWindow().getDecorView();
+        int systemUiFlagFullscreen = View.SYSTEM_UI_FLAG_FULLSCREEN;
+        decorView.setSystemUiVisibility(systemUiFlagFullscreen);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        decorView.setSystemUiVisibility(0);
+    }
+
+
 }

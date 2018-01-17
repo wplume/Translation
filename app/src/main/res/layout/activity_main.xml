@@ -50,7 +50,7 @@
             android:textColor="@drawable/selector_tv" />
     </LinearLayout>
 
-    <!--这个是用来作为 FragmentCard（副） 的父容器-->
+    <!--这个是用来作为 FragmentCardMode（副） 的父容器-->
     <FrameLayout
         android:id="@+id/aux_framelayout"
         android:layout_width="match_parent"
