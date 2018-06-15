@@ -5,6 +5,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
@@ -33,18 +34,22 @@ public class FragmentOffline extends Fragment {
     private String[] col;
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         view = inflater.inflate(R.layout.fragment_offline, container, false);
 
-        Toolbar toolbar = (Toolbar) view.findViewById(R.id.toolbar);
+        Toolbar toolbar = view.findViewById(R.id.toolbar);
         AppCompatActivity appCompatActivity = (AppCompatActivity) getActivity();
-        appCompatActivity.setSupportActionBar(toolbar);
-        appCompatActivity.setTitle(R.string.offline);
+        if (appCompatActivity != null) {
+            appCompatActivity.setSupportActionBar(toolbar);
+        }
+        if (appCompatActivity != null) {
+            appCompatActivity.setTitle(R.string.offline);
+        }
 
         //Fragment中要设置这个menu才能显示
         setHasOptionsMenu(true);
 
-        listView = (ListView) view.findViewById(R.id.listView);
+        listView = view.findViewById(R.id.listView);
 //        listView.addHeaderView(LayoutInflater.from(getActivity()).inflate(R.layout.footer_layout, null, false));
 //        listView.addFooterView(LayoutInflater.from(getActivity()).inflate(R.layout.footer_layout, null, false));
         database = DatabaseHelper.getDatabaseHelper(getActivity()).getWritableDatabase();

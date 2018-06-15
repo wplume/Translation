@@ -10,9 +10,9 @@ import java.util.ArrayList;
  * Created by asus on 2017/12/3.
  */
 public class AdapterVP extends PagerAdapter {
-    ArrayList<View> arrayList = null;
+    private ArrayList<View> arrayList = null;
 
-    public AdapterVP(ArrayList<View> arrayList) {
+    AdapterVP(ArrayList<View> arrayList) {
         super();
         this.arrayList = arrayList;
     }

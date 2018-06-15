@@ -12,6 +12,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.Bundle;
 import android.provider.SearchRecentSuggestions;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
@@ -61,7 +62,7 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
     private CardView cardView;
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         view = inflater.inflate(R.layout.fragment_online, container, false);
 
         initDate();
@@ -74,7 +75,6 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
 
         setNetworkStatus();
 
-        // TODO: 2017/11/27 连有但是WiFi没有网的情况，还有手机欠费的情况
         if (isConnect) {
             new Thread() {
                 @Override
@@ -137,19 +137,19 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
     }
 
     private void initViews() {
-        toolbar = (Toolbar) view.findViewById(R.id.toolbar);
-        imageView = (ImageView) view.findViewById(R.id.ivDailyPic);
-        content = (TextView) view.findViewById(R.id.content);
-        ph_en = (TextView) view.findViewById(R.id.ph_en);
-        ph_am = (TextView) view.findViewById(R.id.ph_am);
-        note = (TextView) view.findViewById(R.id.note);
-        btnEnPron = (Button) view.findViewById(R.id.btnEnPron);
-        btnAmPron = (Button) view.findViewById(R.id.btnAmPron);
-        btnAddToGlossary = (Button) view.findViewById(R.id.btnAddToGlossary);
-        tvOut = (TextView) view.findViewById(R.id.tvOut);
-        tvWord = (TextView) view.findViewById(R.id.tvWord);
-        btnFloat = (FloatingActionButton) view.findViewById(R.id.btnFloat);
-        cardView = (CardView) view.findViewById(R.id.cardView);
+        toolbar = view.findViewById(R.id.toolbar);
+        imageView = view.findViewById(R.id.ivDailyPic);
+        content = view.findViewById(R.id.content);
+        ph_en = view.findViewById(R.id.ph_en);
+        ph_am = view.findViewById(R.id.ph_am);
+        note = view.findViewById(R.id.note);
+        btnEnPron = view.findViewById(R.id.btnEnPron);
+        btnAmPron = view.findViewById(R.id.btnAmPron);
+        btnAddToGlossary = view.findViewById(R.id.btnAddToGlossary);
+        tvOut = view.findViewById(R.id.tvOut);
+        tvWord = view.findViewById(R.id.tvWord);
+        btnFloat = view.findViewById(R.id.btnFloat);
+        cardView = view.findViewById(R.id.cardView);
     }
 
     private void initDate() {
@@ -212,10 +212,9 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
     }
 
     //配置每日一句
-    public Handler sentenceHandler = new Handler() {
+    private Handler sentenceHandler = new Handler(new Handler.Callback() {
         @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
+        public boolean handleMessage(Message msg) {
             final DailySentenceJs dailySentenceJs = (DailySentenceJs) msg.obj;
             content.setText(dailySentenceJs.content);
             note.setText(dailySentenceJs.note);
@@ -227,26 +226,26 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
                     super.run();
                     Message message = new Message();
                     message.what = 0;
-                    message.obj = getPic(dailySentenceJs.picture);
+                    message.obj = getPic(dailySentenceJs.picture2);
                     picHandler.sendMessage(message);
                 }
             }.start();
+            return false;
         }
-    };
+    });
     //配置每日一图的图片
-    public Handler picHandler = new Handler() {
+    public Handler picHandler = new Handler(new Handler.Callback() {
         @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
+        public boolean handleMessage(Message msg) {
             Bitmap bitmap = (Bitmap) msg.obj;
             imageView.setImageBitmap(bitmap);
+            return false;
         }
-    };
+    });
     //配置翻译相关信息
-    public Handler translationHandler = new Handler() {
+    public Handler translationHandler = new Handler(new Handler.Callback() {
         @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
+        public boolean handleMessage(Message msg) {
             final TranslationJs translationJs = (TranslationJs) msg.obj;
             StringBuilder stringBuilder = new StringBuilder();
 
@@ -329,8 +328,9 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
             }
             tvOut.setText(stringBuilder.toString());
             tvWord.setText(translationJs.word);
+            return false;
         }
-    };
+    });
 
     //获取每日一图的图片
     public Bitmap getPic(String url) {

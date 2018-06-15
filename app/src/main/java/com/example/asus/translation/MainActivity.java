@@ -1,12 +1,17 @@
 package com.example.asus.translation;
 
+import android.content.ComponentName;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
+import android.os.IBinder;
+import android.support.annotation.NonNull;
+import android.support.design.widget.NavigationView;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 
@@ -28,9 +33,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
 //        DatabaseHelper.deleteDatabase(this);
+
         //因为 new DatabaseHelper()无论存在不存在，都会创建一个数据库文件，所以需要提前标志，用来判断需不需要写入数据
         if ((new File(getDatabasePath(DATABASE_FILENAME).getPath())).exists()) {
             isDatabaseFileExist = true;
@@ -45,14 +52,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             databaseHelper.write();
         }
 
+        NavigationView navigationView = findViewById(R.id.navigation);
+        navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                switch (item.getItemId()) {
+                    case R.id.nav_about:
+                        break;
+                    case R.id.nav_update:
+
+                        break;
+                }
+                return false;
+            }
+        });
+
         fragmentManager = getSupportFragmentManager();
         //设置初始页面
         fragmentOnline = new FragmentOnline();
         fragmentManager.beginTransaction().add(R.id.main_framelayout, fragmentOnline).commit();
 
-        tvOnline = (TextView) findViewById(R.id.tvOnline);
-        tvOffline = (TextView) findViewById(R.id.tvOffline);
-        tvAbout = (TextView) findViewById(R.id.tvAbout);
+        tvOnline = findViewById(R.id.tvOnline);
+        tvOffline = findViewById(R.id.tvOffline);
+        tvAbout = findViewById(R.id.tvAbout);
 
         tvOnline.setOnClickListener(this);
         tvOffline.setOnClickListener(this);
@@ -60,6 +82,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         tvOnline.setSelected(true);
     }
+
+    private DownloadService.DownloadBinder downloadBinder;
+
+    private ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            downloadBinder = (DownloadService.DownloadBinder) service;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+
+        }
+    };
 
     @Override
     protected void onNewIntent(Intent intent) {
@@ -81,9 +117,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onClick(View v) {
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-        if (fragmentOnline != null) fragmentTransaction.hide(fragmentOnline);
-        if (fragmentOffline != null) fragmentTransaction.hide(fragmentOffline);
-        if (fragmentGlossary != null) fragmentTransaction.hide(fragmentGlossary);
         switch (v.getId()) {
             case R.id.tvOnline:
                 if (!tvOnline.isSelected()) {
@@ -122,6 +155,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 break;
         }
+        if (!tvOnline.isSelected())
+            if (fragmentOnline != null)
+                fragmentTransaction.hide(fragmentOnline);
+        if (!tvOffline.isSelected())
+            if (fragmentOffline != null)
+                fragmentTransaction.hide(fragmentOffline);
+        if (!tvAbout.isSelected())
+            if (fragmentGlossary != null)
+                fragmentTransaction.hide(fragmentGlossary);
         fragmentTransaction.commit();
     }
 

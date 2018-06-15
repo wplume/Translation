@@ -21,42 +21,44 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!--必须声明-->
+            <!-- 必须声明 -->
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
             </intent-filter>
 
-            <!--配合singleTop直接使用自己，无需重新创建新的Activity，例如无需创建下面的SearchActivity，-->
-            <!--value指明了跳转到哪个Activity-->
-            <!--其实这段可以忽略不写，不过为了方便理解-->
+            <!-- 配合singleTop直接使用自己，无需重新创建新的Activity，例如无需创建下面的SearchActivity， -->
+            <!-- value指明了跳转到哪个Activity -->
+            <!-- 其实这段可以忽略不写，不过为了方便理解 -->
             <meta-data
                 android:name="android.app.default_searchable"
                 android:value="com.example.asus.translation.MainActivity" />
-            <!--下面的声明是必须的，resource声明了searchable引用的是哪个配置文件-->
+            <!-- 下面的声明是必须的，resource声明了searchable引用的是哪个配置文件 -->
             <meta-data
                 android:name="android.app.searchable"
-
                 android:resource="@xml/searchable" />
-
         </activity>
-
         <activity android:name=".SearchActivity">
-            <!--声明action为SEARCH-->
+
+            <!-- 声明action为SEARCH -->
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
             </intent-filter>
 
-            <!--下面的声明是必须的-->
+            <!-- 下面的声明是必须的 -->
             <meta-data
                 android:name="android.app.searchable"
                 android:resource="@xml/searchable" />
-
         </activity>
 
         <provider
             android:name=".OnlineSuggestionProvider"
             android:authorities="com.example.asus.translation.OnlineSuggestionProvider"
             android:exported="false" />
+
+        <service
+            android:name=".DownloadService"
+            android:enabled="true"
+            android:exported="true"></service>
     </application>
 
 </manifest>
