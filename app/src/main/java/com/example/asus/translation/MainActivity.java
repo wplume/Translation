@@ -3,22 +3,42 @@ package com.example.asus.translation;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
+import java.io.IOException;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Connection;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     private static final String DATABASE_FILENAME = "BioDic.db";
+    private static final String versionUrl = "https://raw.githubusercontent.com/wplume/Translation/master/app/release/output.json";
+    private static final String downloadUrl = "https://github.com/wplume/Translation/raw/master/app/release/app-release.apk";
+
     TextView tvOnline;
     TextView tvOffline;
     TextView tvAbout;
@@ -58,9 +78,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public boolean onNavigationItemSelected(@NonNull MenuItem item) {
                 switch (item.getItemId()) {
                     case R.id.nav_about:
+
                         break;
                     case R.id.nav_update:
-
+                        HttpUtil.sendOkHttpRequest(versionUrl, callback);
                         break;
                 }
                 return false;
@@ -83,12 +104,57 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         tvOnline.setSelected(true);
     }
 
-    private DownloadService.DownloadBinder downloadBinder;
+    Handler checkUpdateHandler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(Message msg) {
+            try {
+                int versionCode = (int) msg.obj;
+                int currentVersionCode = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode;
+                if (currentVersionCode == versionCode) {
+                    Toast.makeText(MainActivity.this, "您当前已经是最新版本", Toast.LENGTH_SHORT).show();
+                } else {
+                    Intent intent = new Intent(MainActivity.this, DownloadService.class);
+                    startService(intent);
+                    bindService(intent, serviceConnection, BIND_AUTO_CREATE);
+                    Toast.makeText(MainActivity.this, "正在下载最新版本", Toast.LENGTH_SHORT).show();
+                }
+            } catch (PackageManager.NameNotFoundException e) {
+                e.printStackTrace();
+            }
+
+            return false;
+        }
+    });
+
+    Callback callback = new Callback() {
+        @Override
+        public void onFailure(Call call, IOException e) {
+
+        }
+
+        @Override
+        public void onResponse(Call call, Response response) throws IOException {
+            try {
+                String str = response.body().string();
+                JSONArray array = new JSONArray(str);
+                JSONObject js = array.getJSONObject(0);
+                JSONObject js1 = js.getJSONObject("apkInfo");
+                int versionCode = js1.getInt("versionCode");
+
+                Message msg = new Message();
+                msg.obj = versionCode;
+                checkUpdateHandler.sendMessage(msg);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+    };
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            downloadBinder = (DownloadService.DownloadBinder) service;
+            DownloadService.DownloadBinder downloadBinder = (DownloadService.DownloadBinder) service;
+            downloadBinder.startDownload(downloadUrl);
         }
 
         @Override
