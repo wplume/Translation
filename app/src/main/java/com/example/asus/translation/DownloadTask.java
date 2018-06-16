@@ -110,7 +110,8 @@ public class DownloadTask extends AsyncTask<String, Integer, Integer> {
 
     @Override
     protected void onPostExecute(Integer integer) {
-        switch (integer) {
+        int i = integer;
+        switch (i) {
             case TYPE_SUCCESS:
                 if (listener != null) listener.onSuccess();
                 break;

@@ -111,8 +111,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 int versionCode = (int) msg.obj;
                 int currentVersionCode = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode;
                 if (currentVersionCode == versionCode) {
-                    Toast.makeText(MainActivity.this, "您当前已经是最新版本", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, "您当前已经是最新版本" + versionCode, Toast.LENGTH_SHORT).show();
                 } else {
+                    Toast.makeText(MainActivity.this, "需要下载最新版本", Toast.LENGTH_SHORT).show();
                     Intent intent = new Intent(MainActivity.this, DownloadService.class);
                     startService(intent);
                     bindService(intent, serviceConnection, BIND_AUTO_CREATE);
@@ -126,10 +127,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     });
 
+    //这个是OkHttp自带的回调接口
     Callback callback = new Callback() {
         @Override
         public void onFailure(Call call, IOException e) {
-
+            Toast.makeText(MainActivity.this, "检查失败", Toast.LENGTH_SHORT).show();
         }
 
         @Override
