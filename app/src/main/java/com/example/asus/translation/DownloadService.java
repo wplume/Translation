@@ -5,17 +5,23 @@ import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
+import android.nfc.Tag;
 import android.os.Binder;
 import android.os.Environment;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
+import android.util.Log;
 
 import java.io.File;
 
 public class DownloadService extends Service {
+    private static final String TAG = "DownloadService";
+
     private DownloadTask downloadTask;
     private String downloadUrl;
-    private DownloadListener listener = new DownloadListener() {
+
+    // 回调接口实现
+    private DownloadCallback listener = new DownloadCallback() {
 
         @Override
         public void onProgress(int progress) {
@@ -59,13 +65,15 @@ public class DownloadService extends Service {
         return downloadBinder;
     }
 
+    //设计Binder类
     class DownloadBinder extends Binder {
         void startDownload(String url) {
             if (downloadTask == null) {
                 downloadUrl = url;
                 downloadTask = new DownloadTask(listener);
                 downloadTask.execute(url);
-                //开启前台服务
+
+                Log.d(TAG, "开启前台服务显示下载进度");
                 startForeground(1, getNotification("Downloading...", 0));
             }
         }
@@ -110,7 +118,7 @@ public class DownloadService extends Service {
         builder.setLargeIcon(BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher));
         builder.setContentTitle(title);
         if (progress > 0) {
-            builder.setContentInfo(progress + "%");
+            builder.setContentText(progress + "%");
             //第一个参数是最大进度，第二个是当前进度，第三个表示是否模糊进度条
             builder.setProgress(100, progress, false);
         }

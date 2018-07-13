@@ -1,23 +1,30 @@
 package com.example.asus.translation;
 
+import android.Manifest;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.support.annotation.NonNull;
+import android.support.design.widget.BottomNavigationView;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.TextView;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Toast;
 
 import org.json.JSONArray;
@@ -29,36 +36,55 @@ import java.io.IOException;
 
 import okhttp3.Call;
 import okhttp3.Callback;
-import okhttp3.Connection;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
 import okhttp3.Response;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+public class MainActivity extends AppCompatActivity implements
+        FragmentDownloadUpdateDialog.DownloadUpdateDialogListener,
+        BottomNavigationView.OnNavigationItemSelectedListener {
+
+    private static String TAG = MainActivity.class.getName();
+
     private static final String DATABASE_FILENAME = "BioDic.db";
     private static final String versionUrl = "https://raw.githubusercontent.com/wplume/Translation/master/app/release/output.json";
     private static final String downloadUrl = "https://github.com/wplume/Translation/raw/master/app/release/app-release.apk";
 
-    TextView tvOnline;
-    TextView tvOffline;
-    TextView tvAbout;
+    BottomNavigationView bottomNavigationView;
+
     boolean isDatabaseFileExist;
     private FragmentOnline fragmentOnline;
     private FragmentOffline fragmentOffline;
     private FragmentGlossary fragmentGlossary;
     private FragmentManager fragmentManager;
+    private Fragment lastFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        // 申请 WRITE_EXTERNAL_STORAGE 权限
+        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+        }
+
+        //
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            Window window = getWindow();
+            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+
+            // 设置内容显示在系统栏下面，这样当系统栏隐藏起来的时候，内容就不会被调整
+            window.getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            // 这里是设置状态栏
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+            //
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            window.setStatusBarColor(Color.TRANSPARENT);
+        }
 
 //        DatabaseHelper.deleteDatabase(this);
 
-        //因为 new DatabaseHelper()无论存在不存在，都会创建一个数据库文件，所以需要提前标志，用来判断需不需要写入数据
+        // 因为 new DatabaseHelper()无论存在不存在，都会创建一个数据库文件，所以需要提前标志，用来判断需不需要写入数据
         if ((new File(getDatabasePath(DATABASE_FILENAME).getPath())).exists()) {
             isDatabaseFileExist = true;
             System.out.println("数据库文件已存在");
@@ -72,15 +98,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             databaseHelper.write();
         }
 
+        // 设置侧边栏里面的NavigationView
         NavigationView navigationView = findViewById(R.id.navigation);
         navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
             @Override
             public boolean onNavigationItemSelected(@NonNull MenuItem item) {
                 switch (item.getItemId()) {
                     case R.id.nav_about:
-
+                        FragmentAboutDialog dialog = new FragmentAboutDialog();
+                        dialog.show(getSupportFragmentManager(), "AboutDialog");
                         break;
                     case R.id.nav_update:
+                        Toast.makeText(MainActivity.this, "正在检查版本信息，请稍后^_^", Toast.LENGTH_SHORT).show();
                         HttpUtil.sendOkHttpRequest(versionUrl, callback);
                         break;
                 }
@@ -88,20 +117,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
 
+        // 设置初始页面
         fragmentManager = getSupportFragmentManager();
-        //设置初始页面
         fragmentOnline = new FragmentOnline();
-        fragmentManager.beginTransaction().add(R.id.main_framelayout, fragmentOnline).commit();
+        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        fragmentTransaction.add(R.id.main_container, fragmentOnline).commit();
+        lastFragment = fragmentOnline;
 
-        tvOnline = findViewById(R.id.tvOnline);
-        tvOffline = findViewById(R.id.tvOffline);
-        tvAbout = findViewById(R.id.tvAbout);
+        bottomNavigationView = findViewById(R.id.bottom_navigation_view);
+        bottomNavigationView.setOnNavigationItemSelectedListener(this);
 
-        tvOnline.setOnClickListener(this);
-        tvOffline.setOnClickListener(this);
-        tvAbout.setOnClickListener(this);
+    }
 
-        tvOnline.setSelected(true);
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // TODO: 2018/6/25 这里还有bug
+        unbindService(serviceConnection);
     }
 
     Handler checkUpdateHandler = new Handler(new Handler.Callback() {
@@ -110,14 +142,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             try {
                 int versionCode = (int) msg.obj;
                 int currentVersionCode = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode;
+                Log.d(TAG, "当前版本为：" + currentVersionCode + " / " + "服务器版本为：" + versionCode);
+
                 if (currentVersionCode == versionCode) {
                     Toast.makeText(MainActivity.this, "您当前已经是最新版本" + versionCode, Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(MainActivity.this, "需要下载最新版本", Toast.LENGTH_SHORT).show();
-                    Intent intent = new Intent(MainActivity.this, DownloadService.class);
-                    startService(intent);
-                    bindService(intent, serviceConnection, BIND_AUTO_CREATE);
-                    Toast.makeText(MainActivity.this, "正在下载最新版本", Toast.LENGTH_SHORT).show();
+                    FragmentDownloadUpdateDialog dialog = new FragmentDownloadUpdateDialog();
+                    dialog.show(getSupportFragmentManager(), "DownloadUpdateDialog");
                 }
             } catch (PackageManager.NameNotFoundException e) {
                 e.printStackTrace();
@@ -127,7 +158,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     });
 
-    //这个是OkHttp自带的回调接口
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case 1:
+                if (grantResults.length > 0 && grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, "拒绝权限部分功能将无法使用", Toast.LENGTH_SHORT).show();
+                }
+                break;
+            default:
+        }
+    }
+
+    // 这里使用的是OkHttp自带的回调接口
     Callback callback = new Callback() {
         @Override
         public void onFailure(Call call, IOException e) {
@@ -155,6 +198,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
+            Log.d(TAG, "活动与服务绑定成功");
             DownloadService.DownloadBinder downloadBinder = (DownloadService.DownloadBinder) service;
             downloadBinder.startDownload(downloadUrl);
         }
@@ -178,66 +222,74 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         this.searchCallBack = searchCallBack;
     }
 
-    interface SearchCallBack {
-        void setSearchCallback();
+    @Override
+    public void OnPositiveButtonClicked() {
+        Log.d(TAG, "用户点击了确认下载");
+        Intent intent = new Intent(MainActivity.this, DownloadService.class);
+        Log.d(TAG, "开启并绑定服务");
+        startService(intent);
+        bindService(intent, serviceConnection, BIND_AUTO_CREATE);
     }
 
     @Override
-    public void onClick(View v) {
-        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-        switch (v.getId()) {
-            case R.id.tvOnline:
-                if (!tvOnline.isSelected()) {
-                    resetAllSelected();
-                    tvOnline.setSelected(true);
-                    if (fragmentOnline == null) {
-                        fragmentOnline = new FragmentOnline();
-                        fragmentTransaction.add(R.id.main_framelayout, fragmentOnline);
-                    } else {
-                        fragmentTransaction.show(fragmentOnline);
-                    }
-                }
-                break;
-            case R.id.tvOffline:
-                if (!tvOffline.isSelected()) {
-                    resetAllSelected();
-                    tvOffline.setSelected(true);
-                    if (fragmentOffline == null) {
-                        fragmentOffline = new FragmentOffline();
-                        fragmentTransaction.add(R.id.main_framelayout, fragmentOffline);
-                    } else {
-                        fragmentTransaction.show(fragmentOffline);
-                    }
-                }
-                break;
-            case R.id.tvAbout:
-                if (!tvAbout.isSelected()) {
-                    resetAllSelected();
-                    tvAbout.setSelected(true);
-                    if (fragmentGlossary == null) {
-                        fragmentGlossary = new FragmentGlossary();
-                        fragmentTransaction.add(R.id.main_framelayout, fragmentGlossary);
-                    } else {
-                        fragmentTransaction.show(fragmentGlossary);
-                    }
-                }
-                break;
-        }
-        if (!tvOnline.isSelected())
-            if (fragmentOnline != null)
-                fragmentTransaction.hide(fragmentOnline);
-        if (!tvOffline.isSelected())
-            if (fragmentOffline != null)
-                fragmentTransaction.hide(fragmentOffline);
-        if (!tvAbout.isSelected())
-            if (fragmentGlossary != null)
-                fragmentTransaction.hide(fragmentGlossary);
-        fragmentTransaction.commit();
+    public void OnNegativeButtonClicked() {
+        Log.d(TAG, "用户点击了取消下载");
     }
 
-    void resetAllSelected() {
-        tvOnline.setSelected(false);
-        tvOffline.setSelected(false);
-        tvAbout.setSelected(false);
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        switch (item.getItemId()) {
+            case R.id.bottom_home:
+                Log.d(TAG, "点击了首页");
+                if (fragmentOnline == null) {
+                    fragmentOnline = new FragmentOnline();
+                    fragmentTransaction.add(R.id.main_container, fragmentOnline);
+                    fragmentTransaction.hide(lastFragment);
+                } else {
+                    if (!lastFragment.equals(fragmentOnline)) {
+                        fragmentTransaction.show(fragmentOnline);
+                        fragmentTransaction.hide(lastFragment);
+                    }
+                }
+                lastFragment = fragmentOnline;
+                break;
+
+            case R.id.bottom_offline:
+                Log.d(TAG, "点击了词汇");
+                if (fragmentOffline == null) {
+                    fragmentOffline = new FragmentOffline();
+                    fragmentTransaction.add(R.id.main_container, fragmentOffline);
+                    fragmentTransaction.hide(lastFragment);
+                } else {
+                    if (!lastFragment.equals(fragmentOffline)) {
+                        fragmentTransaction.show(fragmentOffline);
+                        fragmentTransaction.hide(lastFragment);
+                    }
+                }
+                lastFragment = fragmentOffline;
+                break;
+
+            case R.id.bottom_glossary:
+                Log.d(TAG, "点击了生词本");
+                if (fragmentGlossary == null) {
+                    fragmentGlossary = new FragmentGlossary();
+                    fragmentTransaction.add(R.id.main_container, fragmentGlossary);
+                    fragmentTransaction.hide(lastFragment);
+                } else {
+                    if (!lastFragment.equals(fragmentGlossary)) {
+                        fragmentTransaction.show(fragmentGlossary);
+                        fragmentTransaction.hide(lastFragment);
+                    }
+                }
+                lastFragment = fragmentGlossary;
+                break;
+        }
+        fragmentTransaction.commit();
+        return true;
+    }
+
+    interface SearchCallBack {
+        void setSearchCallback();
     }
 }

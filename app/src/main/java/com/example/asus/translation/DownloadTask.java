@@ -2,6 +2,7 @@ package com.example.asus.translation;
 
 import android.os.AsyncTask;
 import android.os.Environment;
+import android.util.Log;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,6 +14,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class DownloadTask extends AsyncTask<String, Integer, Integer> {
+    private static final String TAG = "DownloadTask";
 
     private static final int TYPE_SUCCESS = 0;
     private static final int TYPE_FAILED = 1;
@@ -24,14 +26,14 @@ public class DownloadTask extends AsyncTask<String, Integer, Integer> {
 
     private int lastProgress;
 
-    private DownloadListener listener;
+    private DownloadCallback listener;
 
-    DownloadTask(DownloadListener downloadListener) {
-        this.listener = downloadListener;
+    DownloadTask(DownloadCallback downloadCallback) {
+        this.listener = downloadCallback;
     }
 
     /**
-     * 后台执行
+     * 后台执行，位于新的线程
      *
      * @param strings 关联的是AsyncTask第一个参数类型，用于传递后台任务需要字符串（地址）
      * @return 关联的是AsyncTask第三个参数类型，用于反馈执行结果
@@ -40,24 +42,35 @@ public class DownloadTask extends AsyncTask<String, Integer, Integer> {
     protected Integer doInBackground(String... strings) {
         InputStream stream = null;
         RandomAccessFile saveFile = null;
-        File file = null;
+        File file;
 
         long downloadedLength = 0;//记录已下载的文件长度
 
         String downloadUrl = strings[0];
+
         String fileName = downloadUrl.substring(downloadUrl.lastIndexOf("/"));
         String directory = Environment.getExternalStoragePublicDirectory
                 (Environment.DIRECTORY_DOWNLOADS).getPath();
         file = new File(directory + fileName);
 
         if (file.exists()) {
+            Log.d(TAG, "下载文件已存在，检查是否完整...");
             downloadedLength = file.length();
         }
+
         long contentLength = getContentLength(strings[0]);
+        Log.d(TAG, "获取服务器版本apk文件长度:" + contentLength + "字节");
+
         if (contentLength == 0) {
+            Log.d(TAG, "服务器版本文件出现问题");
             return TYPE_FAILED;
+
         } else if (contentLength == downloadedLength) {
+            Log.d(TAG, "检查完毕，文件完整，可以使用");
             return TYPE_SUCCESS;
+
+        } else {
+            Log.d(TAG, "文件不完整，需要继续下载");
         }
 
         OkHttpClient client = new OkHttpClient();
@@ -66,12 +79,14 @@ public class DownloadTask extends AsyncTask<String, Integer, Integer> {
                 .url(strings[0])
                 .build();
         try {
+            Log.d(TAG, "向服务器发起新版本安装文件下载请求");
             Response response = client.newCall(request).execute();
             if (response != null) {
+                Log.d(TAG, "正在接收文件......");
                 stream = response.body().byteStream();
                 saveFile = new RandomAccessFile(file, "rw");
                 saveFile.seek(downloadedLength);
-                byte[] b = new byte[1024 * 1000000];
+                byte[] b = new byte[1024 * 3000];
                 int total = 0;
                 int len;
                 while ((len = stream.read(b)) != -1) {
@@ -87,6 +102,7 @@ public class DownloadTask extends AsyncTask<String, Integer, Integer> {
                     }
                 }
             }
+            Log.d(TAG,"新版安装文件下载完成");
             response.body().close();
             return TYPE_SUCCESS;
         } catch (IOException e) {
@@ -109,9 +125,17 @@ public class DownloadTask extends AsyncTask<String, Integer, Integer> {
     }
 
     @Override
+    protected void onProgressUpdate(Integer... values) {
+        int progress = values[0];
+        if (progress > lastProgress) {
+            if (listener != null) listener.onProgress(values[0]);
+            lastProgress = progress;
+        }
+    }
+
+    @Override
     protected void onPostExecute(Integer integer) {
-        int i = integer;
-        switch (i) {
+        switch (integer) {
             case TYPE_SUCCESS:
                 if (listener != null) listener.onSuccess();
                 break;
@@ -127,30 +151,20 @@ public class DownloadTask extends AsyncTask<String, Integer, Integer> {
         }
     }
 
-    @Override
-    protected void onProgressUpdate(Integer... values) {
-        int progress = values[0];
-        if (progress > lastProgress) {
-            if (listener != null) listener.onProgress(values[0]);
-            lastProgress = progress;
-        }
-    }
-
     private long getContentLength(String downloadUrl) {
         OkHttpClient client = new OkHttpClient();
         Request request = new Request.Builder()
                 .url(downloadUrl)
                 .build();
-        Response response = null;
         try {
-            response = client.newCall(request).execute();
+            Response response = client.newCall(request).execute();
+            if (response != null && response.isSuccessful()) {
+                long contentLength = response.body().contentLength();
+                response.close();
+                return contentLength;
+            }
         } catch (IOException e) {
             e.printStackTrace();
-        }
-        if (response != null && response.isSuccessful()) {
-            long contentLength = response.body().contentLength();
-            response.close();
-            return contentLength;
         }
         return 0;
     }

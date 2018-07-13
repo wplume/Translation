@@ -1,6 +1,6 @@
 package com.example.asus.translation;
 
-public interface DownloadListener {
+public interface DownloadCallback {
     void onProgress(int progress);
 
     void onSuccess();

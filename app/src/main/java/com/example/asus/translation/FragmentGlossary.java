@@ -39,7 +39,7 @@ public class FragmentGlossary extends Fragment {
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         view = inflater.inflate(R.layout.fragment_glossary, container, false);
 
-        Toolbar toolbar = (Toolbar) view.findViewById(R.id.toolbar);
+        Toolbar toolbar = view.findViewById(R.id.toolbar);
         AppCompatActivity appCompatActivity = (AppCompatActivity) getActivity();
         appCompatActivity.setSupportActionBar(toolbar);
         appCompatActivity.setTitle(R.string.glossary);
@@ -51,7 +51,6 @@ public class FragmentGlossary extends Fragment {
         queryAll();
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            // TODO: 2017/11/29 id不知道是什么鬼
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 //第一个参数是父级，第二个参数是当前item，第三个是在listView中适配器里的位置，id是当前item在ListView里的第几行的位置
                 Bundle bundle = new Bundle();
@@ -59,6 +58,7 @@ public class FragmentGlossary extends Fragment {
                 bundle.putStringArrayList(DatabaseHelper.ZH_WORD_COL2, zhList);
                 bundle.putStringArrayList(DatabaseHelper.EXPLANATION, explanationList);
                 bundle.putInt("position", position);
+
                 FragmentCardMode fragmentCard = new FragmentCardMode();
                 fragmentCard.setArguments(bundle);
                 getActivity().getSupportFragmentManager().beginTransaction().addToBackStack(null).

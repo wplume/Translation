@@ -4,9 +4,11 @@ package com.example.asus.translation;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
+import android.support.v4.view.ViewCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
@@ -15,6 +17,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ListView;
@@ -54,6 +57,7 @@ public class FragmentOffline extends Fragment {
 //        listView.addFooterView(LayoutInflater.from(getActivity()).inflate(R.layout.footer_layout, null, false));
         database = DatabaseHelper.getDatabaseHelper(getActivity()).getWritableDatabase();
         queryAll();
+
         return view;
     }
 

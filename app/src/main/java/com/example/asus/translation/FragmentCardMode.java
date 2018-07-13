@@ -1,9 +1,12 @@
 package com.example.asus.translation;
 
+import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,16 +16,16 @@ import android.widget.Toast;
 import java.util.ArrayList;
 
 public class FragmentCardMode extends Fragment {
+    private static final String TAG = FragmentCardMode.class.getName();
+
     FloatingActionButton btnFloat;
-    private View decorView;
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+
         View view = inflater.inflate(R.layout.fragment_card, container, false);
 
-        setFullScreen();
-
-        final ViewPager viewPager = (ViewPager) view.findViewById(R.id.viewpager);
+        final ViewPager viewPager = view.findViewById(R.id.viewpager);
 
         ArrayList<View> viewArrayList = new ArrayList<>();
         final ArrayList<String> enList = getArguments().getStringArrayList(DatabaseHelper.EN_WORD_COL1);
@@ -49,7 +52,7 @@ public class FragmentCardMode extends Fragment {
         viewPager.setCurrentItem(getArguments().getInt("position"));
         //判断是否需要设置添加生词本事件，从生词本fragment过来的，是不需要添加的
         if (getArguments().getBoolean("isVisible_btnFloat", false)) {
-            btnFloat = (FloatingActionButton) view.findViewById(R.id.btnFloat);
+            btnFloat = view.findViewById(R.id.btnFloat);
             btnFloat.setVisibility(View.VISIBLE);
             btnFloat.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -71,16 +74,39 @@ public class FragmentCardMode extends Fragment {
         return view;
     }
 
-    private void setFullScreen() {
-        decorView = getActivity().getWindow().getDecorView();
-        int systemUiFlagFullscreen = View.SYSTEM_UI_FLAG_FULLSCREEN;
-        decorView.setSystemUiVisibility(systemUiFlagFullscreen);
+    // TODO: 2018/6/25 完美全屏待解决
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        hideSystemUI();
+    }
+
+    private void hideSystemUI() {
+        View decorView = getActivity().getWindow().getDecorView();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            decorView.setSystemUiVisibility(
+                    // Set the content to appear under the system bars so that the
+                    // content doesn't resize when the system bars hide and show.
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+        }
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        decorView.setSystemUiVisibility(0);
+        showSystemUI();
+    }
+
+    private void showSystemUI() {
+        View decorView = getActivity().getWindow().getDecorView();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            decorView.setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+        }
     }
 
 
