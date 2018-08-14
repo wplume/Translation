@@ -28,29 +28,39 @@ import android.widget.Toast;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Response;
+
 public class FragmentOnline extends android.support.v4.app.Fragment {
-    ImageView imageView;
-    TextView content;
-    TextView note;
-    Button btnEnPron;
-    Button btnAmPron;
-    Button btnAddToGlossary;
-    TextView ph_en;
-    TextView ph_am;
-    TextView tvOut;
-    TextView tvWord;
-    String url = "http://open.iciba.com/dsapi/?date=";
-    String key = "8B1845F228CA3D723DC68AEF651CCCDD";
+
+    private static final String TAG = FragmentOnline.class.toString();
+    private static final int CONFIG_DAILY_SENTENCE = 0;
+    private static final int CONFIG_PICTURE = 1;
+    private static final int CONFIG_SEARCH_WORD_RESULT = 2;
+
+    private ImageView imageView;
+    private TextView content;
+    private TextView note;
+    private Button btnEnPron;
+    private Button btnAmPron;
+    private Button btnAddToGlossary;
+    private TextView ph_en;
+    private TextView ph_am;
+    private TextView tvOut;
+    private TextView tvWord;
+    private Toolbar toolbar;
+    private CardView cardView;
+
+    private String url = "http://open.iciba.com/dsapi/?date=";
+    //金山api申请到的key，查词的时候需要和词一起传给服务器
+    private String key = "8B1845F228CA3D723DC68AEF651CCCDD";
     SimpleDateFormat simpleDateFormat;
     String date;
     String word;
@@ -58,8 +68,8 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
     boolean isConnect;
     private FloatingActionButton btnFloat;
     private View view;
-    private Toolbar toolbar;
-    private CardView cardView;
+
+    private Handler handler;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -69,22 +79,115 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
 
         initViews();
 
+        initHandler();
+
         setToolbar();
 
         initVisibility();
 
         setNetworkStatus();
 
+        doRequest();
+
+        return view;
+    }
+
+    private void initHandler() {
+        handler = new Handler(new Handler.Callback() {
+            @Override
+            public boolean handleMessage(Message msg) {
+                switch (msg.what) {
+                    //每日一句的内容和解释
+                    case CONFIG_DAILY_SENTENCE:
+                        configDailySentence((JsDailySentence) msg.obj);
+                        break;
+                    //每日一句的配图
+                    case CONFIG_PICTURE:
+                        configPicture((Bitmap) msg.obj);
+                        break;
+                    //查词结果
+                    case CONFIG_SEARCH_WORD_RESULT:
+                        configSearchWordResult((JsTranslation) msg.obj);
+                        break;
+                }
+                //如果不需要进一步处理，则为真
+                return false;
+            }
+        });
+    }
+
+    private void initDate() {
+        simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.CHINA);
+        date = simpleDateFormat.format(new Date());
+    }
+
+    private void initViews() {
+        toolbar = view.findViewById(R.id.toolbar);
+        imageView = view.findViewById(R.id.ivDailyPic);
+        content = view.findViewById(R.id.content);
+        ph_en = view.findViewById(R.id.ph_en);
+        ph_am = view.findViewById(R.id.ph_am);
+        note = view.findViewById(R.id.note);
+        btnEnPron = view.findViewById(R.id.btnEnPron);
+        btnAmPron = view.findViewById(R.id.btnAmPron);
+        btnAddToGlossary = view.findViewById(R.id.btnAddToGlossary);
+        tvOut = view.findViewById(R.id.tvOut);
+        tvWord = view.findViewById(R.id.tvWord);
+        btnFloat = view.findViewById(R.id.btnFloat);
+        cardView = view.findViewById(R.id.cardView);
+    }
+
+    private void setToolbar() {
+        AppCompatActivity appCompatActivity = (AppCompatActivity) getActivity();
+        appCompatActivity.setSupportActionBar(toolbar);
+        appCompatActivity.setTitle(date);
+    }
+
+    private void initVisibility() {
+        btnEnPron.setVisibility(View.INVISIBLE);
+        btnAmPron.setVisibility(View.INVISIBLE);
+        btnAddToGlossary.setVisibility(View.INVISIBLE);
+    }
+
+    private void setNetworkStatus() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo info = connectivityManager.getActiveNetworkInfo();
+        if (info == null) {
+            Toast.makeText(getActivity(), "设备没有联网", Toast.LENGTH_LONG).show();
+            isConnect = false;
+        } else isConnect = true;
+    }
+
+    private void doRequest(){
+
         if (isConnect) {
             new Thread() {
                 @Override
                 public void run() {
                     super.run();
-                    DailySentenceJs dailySentenceJs = new DailySentenceJs(getJSON(url + date));
-                    Message message = new Message();
-                    message.what = 0;
-                    message.obj = dailySentenceJs;
-                    sentenceHandler.sendMessage(message);
+                    HttpUtil.sendOkHttpGetRequest(url + date, new Callback() {
+                        @Override
+                        public void onFailure(Call call, IOException e) {
+
+                        }
+
+                        @Override
+                        public void onResponse(Call call, Response response) throws IOException {
+                            try {
+                                String string = response.body().string();
+                                JSONObject jsonObject = new JSONObject(string);
+                                JsDailySentence jsDailySentence = new JsDailySentence(jsonObject);
+
+                                //虽然Message的构造函数是公共的，但获取其中一个的最佳方法是调用Message.obtain（）
+                                //或其中一个Handler.obtainMessage（）方法，这将从循环对象池中提取它们。
+                                Message msg = Message.obtain(handler, CONFIG_DAILY_SENTENCE, jsDailySentence);
+                                handler.sendMessage(msg);
+
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
                 }
             }.start();
 
@@ -104,75 +207,10 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
                 }
             });
         }
-        //注册翻译事件
-//        btnTranslate.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                word = etInput.getText().toString();
-//                word = word.toLowerCase();
-//                if (isConnect)
-//                    new Thread() {
-//                        @Override
-//                        public void run() {
-//                            super.run();
-//                            String url = String.format("http://dict-co.iciba.com/api/dictionary.php?w=%s&type=json&key=%s", word, key);
-//                            TranslationJs translationJs = new TranslationJs(getJSON(url));
-//                            Message message = new Message();
-//                            message.what = 0;
-//                            message.obj = translationJs;
-//                            translationHandler.sendMessage(message);
-//                        }
-//                    }.start();
-//                else Toast.makeText(getActivity(), "无法加载", Toast.LENGTH_SHORT).show();
-//            }
-//        });
-        return view;
-    }
-
-
-    private void initVisibility() {
-        btnEnPron.setVisibility(View.INVISIBLE);
-        btnAmPron.setVisibility(View.INVISIBLE);
-        btnAddToGlossary.setVisibility(View.INVISIBLE);
-    }
-
-    private void initViews() {
-        toolbar = view.findViewById(R.id.toolbar);
-        imageView = view.findViewById(R.id.ivDailyPic);
-        content = view.findViewById(R.id.content);
-        ph_en = view.findViewById(R.id.ph_en);
-        ph_am = view.findViewById(R.id.ph_am);
-        note = view.findViewById(R.id.note);
-        btnEnPron = view.findViewById(R.id.btnEnPron);
-        btnAmPron = view.findViewById(R.id.btnAmPron);
-        btnAddToGlossary = view.findViewById(R.id.btnAddToGlossary);
-        tvOut = view.findViewById(R.id.tvOut);
-        tvWord = view.findViewById(R.id.tvWord);
-        btnFloat = view.findViewById(R.id.btnFloat);
-        cardView = view.findViewById(R.id.cardView);
-    }
-
-    private void initDate() {
-        simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.CHINA);
-        date = simpleDateFormat.format(new Date());
-    }
-
-    private void setToolbar() {
-        AppCompatActivity appCompatActivity = (AppCompatActivity) getActivity();
-        appCompatActivity.setSupportActionBar(toolbar);
-        appCompatActivity.setTitle(date);
-    }
-
-    private void setNetworkStatus() {
-        ConnectivityManager connectivityManager = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo info = connectivityManager.getActiveNetworkInfo();
-        if (info == null) {
-            Toast.makeText(getActivity(), "设备没有联网", Toast.LENGTH_LONG).show();
-            isConnect = false;
-        } else isConnect = true;
     }
 
     private void searchRequest() {
+        //在Manifest文件中已经设置SingleTop模式（启动时如果已经在栈顶，将直接使用给活动）
         word = getActivity().getIntent().getStringExtra(SearchManager.QUERY);
         word = word.toLowerCase();
 
@@ -195,15 +233,33 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
                             public void run() {
                                 super.run();
                                 String url = String.format("http://dict-co.iciba.com/api/dictionary.php?w=%s&type=json&key=%s", word, key);
-                                TranslationJs translationJs = new TranslationJs(getJSON(url));
-                                Message message = new Message();
-                                message.obj = translationJs;
-                                translationHandler.sendMessage(message);
+                                HttpUtil.sendOkHttpGetRequest(url, new Callback() {
+                                    @Override
+                                    public void onFailure(Call call, IOException e) {
+
+                                    }
+
+                                    @Override
+                                    public void onResponse(Call call, Response response) throws IOException {
+                                        try {
+                                            String string = response.body().string();
+                                            JSONObject jsonObject = new JSONObject(string);
+                                            JsTranslation jsTranslation = new JsTranslation(jsonObject);
+
+                                            Message msg = Message.obtain(handler, CONFIG_SEARCH_WORD_RESULT, jsTranslation);
+                                            handler.sendMessage(msg);
+
+                                        } catch (JSONException e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+                                });
                             }
                         }.start();
                     else Toast.makeText(getActivity(), "无法加载", Toast.LENGTH_SHORT).show();
                 }
             } else {
+                // TODO: 2018/8/1 中文翻译待开发
                 Toast.makeText(getActivity(), "请输入正确的字符", Toast.LENGTH_SHORT).show();
                 break;
             }
@@ -211,171 +267,122 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
 
     }
 
-    //配置每日一句
-    private Handler sentenceHandler = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(Message msg) {
-            final DailySentenceJs dailySentenceJs = (DailySentenceJs) msg.obj;
-            content.setText(dailySentenceJs.content);
-            note.setText(dailySentenceJs.note);
+    private void configDailySentence(final JsDailySentence jsDailySentence) {
 
-            //开启新的线程获取图片
-            new Thread() {
-                @Override
-                public void run() {
-                    super.run();
-                    Message message = new Message();
-                    message.what = 0;
-                    message.obj = getPic(dailySentenceJs.picture2);
-                    picHandler.sendMessage(message);
-                }
-            }.start();
-            return false;
-        }
-    });
-    //配置每日一图的图片
-    public Handler picHandler = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(Message msg) {
-            Bitmap bitmap = (Bitmap) msg.obj;
-            imageView.setImageBitmap(bitmap);
-            return false;
-        }
-    });
-    //配置翻译相关信息
-    public Handler translationHandler = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(Message msg) {
-            final TranslationJs translationJs = (TranslationJs) msg.obj;
-            StringBuilder stringBuilder = new StringBuilder();
+        content.setText(jsDailySentence.getContent());
+        note.setText(jsDailySentence.getNote());
 
-            //音标
-            String en = "英式发音：" + translationJs.ph_en;
-            String am = "美式发音：" + translationJs.ph_am;
-            ph_en.setText(en);
-            ph_am.setText(am);
-            //发音
-            btnEnPron.setVisibility(View.VISIBLE);
-            btnAmPron.setVisibility(View.VISIBLE);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String url = jsDailySentence.getPicture2();
+                HttpUtil.sendOkHttpGetRequest(url, new Callback() {
+                    @Override
+                    public void onFailure(Call call, IOException e) {
 
-            cardView.setVisibility(View.VISIBLE);
-
-            //注册播放按钮事件
-            btnEnPron.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (translationJs.ph_en_mp3 != null && !translationJs.ph_en_mp3.equals(""))
-                        playFromRemoteURL(translationJs.ph_en_mp3);
-                    else Toast.makeText(getActivity(), "无音源", Toast.LENGTH_SHORT).show();
-                }
-            });
-            btnAmPron.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (translationJs.ph_am_mp3 != null && !translationJs.ph_am_mp3.equals(""))
-                        playFromRemoteURL(translationJs.ph_am_mp3);
-                    else Toast.makeText(getActivity(), "无音源", Toast.LENGTH_SHORT).show();
-                }
-            });
-            //注册添加生词本按钮事件
-            //拼接存到数据库中文翻译
-            final StringBuilder stringBuilder1 = new StringBuilder();
-            for (int i = 0; i < translationJs.parts.size(); i++) {
-                stringBuilder1.append(translationJs.parts.get(i));
-                for (int j = 0; j < translationJs.means.get(i).length(); j++) {
-                    try {
-                        if (j != translationJs.means.get(i).length() - 1)
-                            stringBuilder1.append(translationJs.means.get(i).get(j).toString());
-                        else
-                            stringBuilder1.append(translationJs.means.get(i).get(j).toString()).append("\n");
-                    } catch (JSONException e) {
-                        e.printStackTrace();
                     }
-                }
-            }
-            if (translationJs.word.equals("无法查询该单词")) {
 
-                if (DatabaseHelper.queryIsExist(word)) {
-                    btnAddToGlossary.setEnabled(false);
-                    btnAddToGlossary.setText("已加入生词本");
-                } else {
-                    btnAddToGlossary.setEnabled(true);
-                    btnAddToGlossary.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            DatabaseHelper.insertGlossary(word, stringBuilder1.toString(), "");
-                            Toast.makeText(getActivity(), "已加入生词本", Toast.LENGTH_SHORT).show();
-                            btnAddToGlossary.setEnabled(false);
-                            btnAddToGlossary.setText("已加入生词本");
-                        }
-                    });
-                }
-            }
-
-            //翻译 拼接用来显示的中文翻译
-            for (int i = 0; i < translationJs.parts.size(); i++) {
-                stringBuilder.append(translationJs.parts.get(i)).append("  ");
-                for (int j = 0; j < translationJs.means.get(i).length(); j++) {
-                    try {
-                        if (j != translationJs.means.get(i).length() - 1)
-                            stringBuilder.append(translationJs.means.get(i).get(j).toString());
-                        else
-                            stringBuilder.append(translationJs.means.get(i).get(j).toString()).append("\n");
-                    } catch (JSONException e) {
-                        e.printStackTrace();
+                    @Override
+                    public void onResponse(Call call, Response response) throws IOException {
+                        InputStream inputStream = response.body().byteStream();
+                        Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+                        inputStream.close();
+                        Message msg = Message.obtain(handler, CONFIG_PICTURE, bitmap);
+                        handler.sendMessage(msg);
                     }
-                }
+                });
             }
-            tvOut.setText(stringBuilder.toString());
-            tvWord.setText(translationJs.word);
-            return false;
-        }
-    });
-
-    //获取每日一图的图片
-    public Bitmap getPic(String url) {
-        Bitmap bitmap = null;
-        try {
-            HttpURLConnection connection = (HttpURLConnection) (new URL(url)).openConnection();
-            connection.setConnectTimeout(7000);
-            connection.setDoInput(true);
-            connection.setUseCaches(false);
-            connection.connect();
-            InputStream inputStream = connection.getInputStream();
-            bitmap = BitmapFactory.decodeStream(inputStream);
-            inputStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return bitmap;
+        }).start();
     }
 
-    /**
-     * 连接服务器，获取 json
-     */
-    private JSONObject getJSON(String url) {
-        JSONObject js = null;
-        try {
-            HttpURLConnection connection = (HttpURLConnection) (new URL(url)).openConnection();
-            connection.setConnectTimeout(7000);
-            connection.connect();
-            InputStream is = connection.getInputStream();
-            InputStreamReader isr = new InputStreamReader(is, "UTF-8");
-            BufferedReader br = new BufferedReader(isr);
-            String line;
-            StringBuilder stringBuilder = new StringBuilder();
-            while ((line = br.readLine()) != null) {
-                stringBuilder.append(line);
+    private void configPicture(Bitmap bitmap) {
+        imageView.setImageBitmap(bitmap);
+    }
+
+    private void configSearchWordResult(final JsTranslation jsTranslation) {
+        StringBuilder stringBuilder = new StringBuilder();
+
+        //音标
+        String en = "英式发音：" + jsTranslation.getPh_am();
+        String am = "美式发音：" + jsTranslation.getPh_am();
+        ph_en.setText(en);
+        ph_am.setText(am);
+        //发音
+        btnEnPron.setVisibility(View.VISIBLE);
+        btnAmPron.setVisibility(View.VISIBLE);
+
+        cardView.setVisibility(View.VISIBLE);
+
+        //注册播放按钮事件
+        btnEnPron.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (jsTranslation.getPh_am_mp3() != null && !jsTranslation.getPh_en_mp3().equals(""))
+                    playFromRemoteURL(jsTranslation.getPh_en_mp3());
+                else Toast.makeText(getActivity(), "无音源", Toast.LENGTH_SHORT).show();
             }
-            try {
-                js = new JSONObject(stringBuilder.toString());
-            } catch (JSONException e) {
-                e.printStackTrace();
+        });
+        btnAmPron.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (jsTranslation.getPh_am_mp3() != null && !jsTranslation.getPh_am_mp3().equals(""))
+                    playFromRemoteURL(jsTranslation.getPh_am_mp3());
+                else Toast.makeText(getActivity(), "无音源", Toast.LENGTH_SHORT).show();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+        });
+        //拼接存到数据库中文翻译
+        final StringBuilder stringBuilder1 = new StringBuilder();
+        for (int i = 0; i < jsTranslation.getParts().size(); i++) {
+            stringBuilder1.append(jsTranslation.getParts().get(i));
+            for (int j = 0; j < jsTranslation.getMeans().get(i).length(); j++) {
+                try {
+                    if (j != jsTranslation.getMeans().get(i).length() - 1)
+                        stringBuilder1.append(jsTranslation.getMeans().get(i).get(j).toString());
+                    else
+                        stringBuilder1.append(jsTranslation.getMeans().get(i).get(j).toString()).append("\n");
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
         }
-        return js;
+        //注册添加到生词本按钮的事件
+        if (!jsTranslation.getWord().equals("无法查询该单词")) {
+            if (DatabaseHelper.queryIsExist(word)) {
+                btnAddToGlossary.setEnabled(false);
+                btnAddToGlossary.setVisibility(View.VISIBLE);
+                btnAddToGlossary.setText("已加入生词本");
+            } else {
+                btnAddToGlossary.setEnabled(true);
+                btnAddToGlossary.setVisibility(View.VISIBLE);
+                btnAddToGlossary.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        DatabaseHelper.insertGlossary(word, stringBuilder1.toString(), "");
+                        btnAddToGlossary.setEnabled(false);
+                        btnAddToGlossary.setText("已加入生词本");
+                    }
+                });
+            }
+        } else {
+            btnAddToGlossary.setVisibility(View.INVISIBLE);
+        }
+
+        //释义 拼接用来显示的中文翻译
+        for (int i = 0; i < jsTranslation.getParts().size(); i++) {
+            stringBuilder.append(jsTranslation.getParts().get(i)).append("  ");
+            for (int j = 0; j < jsTranslation.getMeans().get(i).length(); j++) {
+                try {
+                    if (j != jsTranslation.getMeans().get(i).length() - 1)
+                        stringBuilder.append(jsTranslation.getMeans().get(i).get(j).toString());
+                    else
+                        stringBuilder.append(jsTranslation.getMeans().get(i).get(j).toString()).append("\n");
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        tvOut.setText(stringBuilder.toString());
+        tvWord.setText(jsTranslation.getWord());
     }
 
     private void playFromRemoteURL(String url) {
@@ -383,10 +390,6 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
         mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         try {
             mediaPlayer.setDataSource(url);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        try {
             mediaPlayer.prepare(); // might take long! (for buffering, etc)
         } catch (IOException e) {
             e.printStackTrace();

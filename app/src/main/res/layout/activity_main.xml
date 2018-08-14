@@ -11,7 +11,7 @@
         android:layout_height="match_parent">
 
 
-        <!--fragment的主容器 （主）FragmentOnline、FragmentOffline、FragmentGlossary-->
+        <!--fragment的主容器 （主）FragmentOnline、FragmentVocabulary、FragmentGlossary-->
         <FrameLayout
             android:id="@+id/main_container"
             android:layout_width="match_parent"

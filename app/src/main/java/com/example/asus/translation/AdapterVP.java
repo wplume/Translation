@@ -6,9 +6,6 @@ import android.view.ViewGroup;
 
 import java.util.ArrayList;
 
-/**
- * Created by asus on 2017/12/3.
- */
 public class AdapterVP extends PagerAdapter {
     private ArrayList<View> arrayList = null;
 

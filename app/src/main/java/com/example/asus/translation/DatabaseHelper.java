@@ -1,12 +1,10 @@
 package com.example.asus.translation;
 
-import android.app.DownloadManager;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.widget.Toast;
 
 import org.apache.poi.hssf.usermodel.HSSFRow;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
@@ -127,7 +125,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
         values.clear();
     }
 
-    static Cursor query(String tableName, String[] col, String value) {
+    public static Cursor characterMatchingQuery(String tableName, String[] col, String value) {
         return database.query(
                 tableName,
                 col,
@@ -138,7 +136,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
 
     static boolean queryIsExist(String enWord) {
         boolean isExist;
-        Cursor cursor = query(DatabaseHelper.GLOSSARY_TABLE_NAME, new String[]{DatabaseHelper.EN_WORD_COL1}, enWord);
+        Cursor cursor = characterMatchingQuery(DatabaseHelper.GLOSSARY_TABLE_NAME, new String[]{DatabaseHelper.EN_WORD_COL1}, enWord);
         isExist = cursor.getCount() != 0;
         cursor.close();
         return isExist;

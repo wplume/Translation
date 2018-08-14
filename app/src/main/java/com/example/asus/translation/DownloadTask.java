@@ -75,6 +75,7 @@ public class DownloadTask extends AsyncTask<String, Integer, Integer> {
 
         OkHttpClient client = new OkHttpClient();
         Request request = new Request.Builder()
+                // 断点下载，指定从哪里开始下载
                 .addHeader("RANGE", "byte=" + contentLength + "-")
                 .url(strings[0])
                 .build();
@@ -85,15 +86,19 @@ public class DownloadTask extends AsyncTask<String, Integer, Integer> {
                 Log.d(TAG, "正在接收文件......");
                 stream = response.body().byteStream();
                 saveFile = new RandomAccessFile(file, "rw");
-                saveFile.seek(downloadedLength);
+                saveFile.seek(downloadedLength);// 跳过已下载的字节
                 byte[] b = new byte[1024 * 3000];
                 int total = 0;
                 int len;
                 while ((len = stream.read(b)) != -1) {
                     if (isPaused) {
+
                         return TYPE_PAUSED;
+
                     } else if (isCanceled) {
+
                         return TYPE_CANCELED;
+
                     } else {
                         total += len;
                         saveFile.write(b, 0, len);
@@ -102,7 +107,7 @@ public class DownloadTask extends AsyncTask<String, Integer, Integer> {
                     }
                 }
             }
-            Log.d(TAG,"新版安装文件下载完成");
+            Log.d(TAG, "新版安装文件下载完成");
             response.body().close();
             return TYPE_SUCCESS;
         } catch (IOException e) {
@@ -151,12 +156,13 @@ public class DownloadTask extends AsyncTask<String, Integer, Integer> {
         }
     }
 
+    // 获取服务器存储文件的长度
     private long getContentLength(String downloadUrl) {
-        OkHttpClient client = new OkHttpClient();
-        Request request = new Request.Builder()
-                .url(downloadUrl)
-                .build();
         try {
+            OkHttpClient client = new OkHttpClient();
+            Request request = new Request.Builder()
+                    .url(downloadUrl)
+                    .build();
             Response response = client.newCall(request).execute();
             if (response != null && response.isSuccessful()) {
                 long contentLength = response.body().contentLength();
@@ -166,6 +172,7 @@ public class DownloadTask extends AsyncTask<String, Integer, Integer> {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        // 如果为0则说明文件有问题
         return 0;
     }
 

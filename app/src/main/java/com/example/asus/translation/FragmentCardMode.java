@@ -35,9 +35,9 @@ public class FragmentCardMode extends Fragment {
         assert enList != null;
         for (int i = 0; i < enList.size(); i++) {
             View v = getActivity().getLayoutInflater().inflate(R.layout.adapter_viewpager, container, false);
-            TextView enTv = (TextView) v.findViewById(R.id.en_word);
-            TextView zhTv = (TextView) v.findViewById(R.id.zh_word);
-            TextView explanation = (TextView) v.findViewById(R.id.explanation);
+            TextView enTv = v.findViewById(R.id.en_word);
+            TextView zhTv = v.findViewById(R.id.zh_word);
+            TextView explanation = v.findViewById(R.id.explanation);
             //设置对应的文本
             enTv.setText(enList.get(i));
             assert zhList != null;

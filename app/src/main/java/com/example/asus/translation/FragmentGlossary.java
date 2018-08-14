@@ -3,11 +3,13 @@ package com.example.asus.translation;
 import android.content.DialogInterface;
 import android.database.Cursor;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.ActionMode;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -24,6 +26,8 @@ import java.util.ArrayList;
  * Created by asus on 2017/12/7.
  */
 public class FragmentGlossary extends Fragment {
+    private static final String TAG = FragmentGlossary.class.toString();
+
     View view;
     ListView listView;
     AdapterLV adapterLV;
@@ -36,7 +40,7 @@ public class FragmentGlossary extends Fragment {
 
     @Nullable
     @Override
-    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         view = inflater.inflate(R.layout.fragment_glossary, container, false);
 
         Toolbar toolbar = view.findViewById(R.id.toolbar);
@@ -44,7 +48,14 @@ public class FragmentGlossary extends Fragment {
         appCompatActivity.setSupportActionBar(toolbar);
         appCompatActivity.setTitle(R.string.glossary);
 
-        listView = (ListView) view.findViewById(R.id.listView);
+        listView = view.findViewById(R.id.listView);
+
+        View footer = View.inflate(getActivity(), R.layout.footer, null);
+        int height = getActivity().findViewById(R.id.bottom_navigation_view).getHeight();
+        AbsListView.LayoutParams params=new AbsListView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,height);
+        footer.setLayoutParams(params);
+        listView.addFooterView(footer);
+
         listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
         actionModeCallback = new ActionModeCallback();
         listView.setMultiChoiceModeListener(actionModeCallback);
@@ -68,6 +79,16 @@ public class FragmentGlossary extends Fragment {
         return view;
     }
 
+    //fragment调用hide()或者show()，生命周期的回调函数将不执行
+    @Override
+    public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+        if (hidden) {
+            if (actionModeCallback.actionMode != null)
+                actionModeCallback.actionMode.finish();
+        }
+    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -82,10 +103,10 @@ public class FragmentGlossary extends Fragment {
         //查询所有
         cursor = DatabaseHelper.getDatabase().query(DatabaseHelper.GLOSSARY_TABLE_NAME, col, null, null, null, null, null);
 
-        System.out.println("匹配个数:" + cursor.getCount());
+        Log.d(TAG, "匹配个数:" + cursor.getCount());
 //        int k = cursor.getColumnIndex(DatabaseHelper.EXPLANATION);
         cursor.moveToFirst();
-        // TODO: 2017/12/3 ListView还要加个表尾
+
         adapterLV = new AdapterLV(getActivity(), cursor);
         listView.setAdapter(adapterLV);
         for (cursor.isBeforeFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
@@ -101,30 +122,45 @@ public class FragmentGlossary extends Fragment {
     private class ActionModeCallback implements AbsListView.MultiChoiceModeListener {
         private ActionMode actionMode;
 
+        //在选择模式期间选中或取消选中某个项目时调用。
         @Override
         public void onItemCheckedStateChanged(ActionMode mode, int position, long id, boolean checked) {
             actionMode = mode;
             adapterLV.notifyDataSetChanged();
         }
 
+        /**
+         * 首次创建 ActionMode 时调用。提供的菜单将用于为 ActionMode 生成动作按钮。
+         * @param mode 正在创建的ActionMode
+         * @param menu 用于填充action button的menu
+         * @return 如果应创建操作模式，则为true;如果应该中止进入此模式，则为false。
+         */
         @Override
         public boolean onCreateActionMode(ActionMode mode, Menu menu) {
-            System.out.println("进入多选模式");
+            Log.d(TAG, "进入多选模式");
             mode.getMenuInflater().inflate(R.menu.listview_multi_choice_mode, menu);
             //进入多选模式之前要把所有的复选框设置为可见
             adapterLV.setVisible(true);
 //            adapterLV.notifyDataSetChanged();
-            // TODO: 2017/12/8 这个要设置为true
             return true;
         }
 
+        /**
+         * 每当它无效时调用刷新ActionMode的action menu button
+         * @param mode ActionMode正在准备中
+         * @param menu 用于填充操作按钮的菜单
+         * @return 如果菜单或操作模式已更新，则为true，否则为false。
+         */
         @Override
         public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
             return false;
         }
 
         /**
-         * 点击了菜单按钮会触发的事件
+         * 被调用以报告用户单击操作按钮。
+         * @param mode 当前的ActionMode
+         * @param item 单击的项目
+         * @return 如果此回调处理事件，则返回true;如果标准MenuItem调用应继续，则返回false。
          */
         @Override
         public boolean onActionItemClicked(final ActionMode mode, MenuItem item) {
@@ -180,7 +216,7 @@ public class FragmentGlossary extends Fragment {
 
         @Override
         public void onDestroyActionMode(ActionMode mode) {
-            System.out.println("退出多选模式");
+            Log.d(TAG, "退出多选模式");
             //退出后要把所有的复选框设为不可见
             adapterLV.setVisible(false);
 //            adapterLV.notifyDataSetChanged();

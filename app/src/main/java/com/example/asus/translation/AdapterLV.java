@@ -51,9 +51,9 @@ class AdapterLV extends BaseAdapter {
 
             //viewHold是为了减少findViewById的次数
             viewHolder = new ViewHolder();
-            viewHolder.textView1 = (TextView) convertView.findViewById(R.id.en_word);
-            viewHolder.textView2 = (TextView) convertView.findViewById(R.id.zh_word);
-            viewHolder.checkBox = (CheckBox) convertView.findViewById(R.id.checkBox);
+            viewHolder.textView1 = convertView.findViewById(R.id.en_word);
+            viewHolder.textView2 = convertView.findViewById(R.id.zh_word);
+            viewHolder.checkBox = convertView.findViewById(R.id.checkBox);
 
             //setTag是为了减少inflate的次数
             convertView.setTag(viewHolder);

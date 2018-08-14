@@ -20,7 +20,9 @@ public class DownloadService extends Service {
     private DownloadTask downloadTask;
     private String downloadUrl;
 
-    // 回调接口实现
+    /**
+     * 回调接口实现，监听网络状态和用户操作，做出相对应的操作
+     */
     private DownloadCallback listener = new DownloadCallback() {
 
         @Override
@@ -65,7 +67,7 @@ public class DownloadService extends Service {
         return downloadBinder;
     }
 
-    //设计Binder类
+    // 设计Binder类
     class DownloadBinder extends Binder {
         void startDownload(String url) {
             if (downloadTask == null) {
