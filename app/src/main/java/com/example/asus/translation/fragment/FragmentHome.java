@@ -1,4 +1,4 @@
-package com.example.asus.translation;
+package com.example.asus.translation.fragment;
 
 import android.app.SearchManager;
 import android.content.Context;
@@ -14,9 +14,11 @@ import android.os.Bundle;
 import android.provider.SearchRecentSuggestions;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,6 +26,15 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.example.asus.translation.JsDailySentence;
+import com.example.asus.translation.JsTranslation;
+import com.example.asus.translation.OnlineSuggestionProvider;
+import com.example.asus.translation.R;
+import com.example.asus.translation.TranslationLab;
+import com.example.asus.translation.activity.MainActivity;
+import com.example.asus.translation.bean.NewWord;
+import com.example.asus.translation.util.HttpUtil;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -33,14 +44,17 @@ import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Observable;
+import java.util.Observer;
 
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Response;
 
-public class FragmentOnline extends android.support.v4.app.Fragment {
+public class FragmentHome extends Fragment{
 
-    private static final String TAG = FragmentOnline.class.toString();
+
+    private static final String TAG = FragmentHome.class.toString();
     private static final int CONFIG_DAILY_SENTENCE = 0;
     private static final int CONFIG_PICTURE = 1;
     private static final int CONFIG_SEARCH_WORD_RESULT = 2;
@@ -53,14 +67,16 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
     private Button btnAddToGlossary;
     private TextView ph_en;
     private TextView ph_am;
-    private TextView tvOut;
+    private TextView tvExplanation;
     private TextView tvWord;
     private Toolbar toolbar;
     private CardView cardView;
 
-    private String url = "http://open.iciba.com/dsapi/?date=";
-    //金山api申请到的key，查词的时候需要和词一起传给服务器
-    private String key = "8B1845F228CA3D723DC68AEF651CCCDD";
+    private static final String url = "http://open.iciba.com/dsapi/?date=";
+    /**
+     * 金山api申请到的key，查词的时候需要和词一起传给服务器
+     */
+    private static final String key = "8B1845F228CA3D723DC68AEF651CCCDD";
     SimpleDateFormat simpleDateFormat;
     String date;
     String word;
@@ -131,7 +147,7 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
         btnEnPron = view.findViewById(R.id.btnEnPron);
         btnAmPron = view.findViewById(R.id.btnAmPron);
         btnAddToGlossary = view.findViewById(R.id.btnAddToGlossary);
-        tvOut = view.findViewById(R.id.tvOut);
+        tvExplanation = view.findViewById(R.id.tvExplanation);
         tvWord = view.findViewById(R.id.tvWord);
         btnFloat = view.findViewById(R.id.btnFloat);
         cardView = view.findViewById(R.id.cardView);
@@ -158,38 +174,32 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
         } else isConnect = true;
     }
 
-    private void doRequest(){
+    private void doRequest() {
 
         if (isConnect) {
-            new Thread() {
+            HttpUtil.sendOkHttpGetRequest(url + date, new Callback() {
                 @Override
-                public void run() {
-                    super.run();
-                    HttpUtil.sendOkHttpGetRequest(url + date, new Callback() {
-                        @Override
-                        public void onFailure(Call call, IOException e) {
-
-                        }
-
-                        @Override
-                        public void onResponse(Call call, Response response) throws IOException {
-                            try {
-                                String string = response.body().string();
-                                JSONObject jsonObject = new JSONObject(string);
-                                JsDailySentence jsDailySentence = new JsDailySentence(jsonObject);
-
-                                //虽然Message的构造函数是公共的，但获取其中一个的最佳方法是调用Message.obtain（）
-                                //或其中一个Handler.obtainMessage（）方法，这将从循环对象池中提取它们。
-                                Message msg = Message.obtain(handler, CONFIG_DAILY_SENTENCE, jsDailySentence);
-                                handler.sendMessage(msg);
-
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    });
+                public void onFailure(Call call, IOException e) {
+                    Log.e(TAG, "onFailure: ", e);
                 }
-            }.start();
+
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    try {
+                        String string = response.body().string();
+                        JSONObject jsonObject = new JSONObject(string);
+                        JsDailySentence jsDailySentence = new JsDailySentence(jsonObject);
+
+                        //虽然Message的构造函数是公共的，但获取其中一个的最佳方法是调用Message.obtain（）
+                        //或其中一个Handler.obtainMessage（）方法，这将从循环对象池中提取它们。
+                        Message msg = Message.obtain(handler, CONFIG_DAILY_SENTENCE, jsDailySentence);
+                        handler.sendMessage(msg);
+
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
 
             //点击search dialog的确定按钮，或者软键盘上的确定按钮，将启动一个searchable activity（目前是MainActivity本身）
             btnFloat.setOnClickListener(new View.OnClickListener() {
@@ -227,36 +237,32 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
                                     OnlineSuggestionProvider.MODE);
                     searchRecentSuggestions.saveRecentQuery(word, null);
 
-                    if (isConnect)
-                        new Thread() {
+                    if (isConnect) {
+                        String url = String.format("http://dict-co.iciba.com/api/dictionary.php?w=%s&type=json&key=%s", word, key);
+                        HttpUtil.sendOkHttpGetRequest(url, new Callback() {
                             @Override
-                            public void run() {
-                                super.run();
-                                String url = String.format("http://dict-co.iciba.com/api/dictionary.php?w=%s&type=json&key=%s", word, key);
-                                HttpUtil.sendOkHttpGetRequest(url, new Callback() {
-                                    @Override
-                                    public void onFailure(Call call, IOException e) {
+                            public void onFailure(Call call, IOException e) {
 
-                                    }
-
-                                    @Override
-                                    public void onResponse(Call call, Response response) throws IOException {
-                                        try {
-                                            String string = response.body().string();
-                                            JSONObject jsonObject = new JSONObject(string);
-                                            JsTranslation jsTranslation = new JsTranslation(jsonObject);
-
-                                            Message msg = Message.obtain(handler, CONFIG_SEARCH_WORD_RESULT, jsTranslation);
-                                            handler.sendMessage(msg);
-
-                                        } catch (JSONException e) {
-                                            e.printStackTrace();
-                                        }
-                                    }
-                                });
                             }
-                        }.start();
-                    else Toast.makeText(getActivity(), "无法加载", Toast.LENGTH_SHORT).show();
+
+                            @Override
+                            public void onResponse(Call call, Response response) throws IOException {
+                                try {
+                                    String string = response.body().string();
+                                    JSONObject jsonObject = new JSONObject(string);
+                                    JsTranslation jsTranslation = new JsTranslation(jsonObject);
+
+                                    Message msg = Message.obtain(handler, CONFIG_SEARCH_WORD_RESULT, jsTranslation);
+                                    handler.sendMessage(msg);
+
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
+                    } else {
+                        Toast.makeText(getActivity(), "无法加载", Toast.LENGTH_SHORT).show();
+                    }
                 }
             } else {
                 // TODO: 2018/8/1 中文翻译待开发
@@ -272,27 +278,22 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
         content.setText(jsDailySentence.getContent());
         note.setText(jsDailySentence.getNote());
 
-        new Thread(new Runnable() {
+        String url = jsDailySentence.getPicture2();
+        HttpUtil.sendOkHttpGetRequest(url, new Callback() {
             @Override
-            public void run() {
-                String url = jsDailySentence.getPicture2();
-                HttpUtil.sendOkHttpGetRequest(url, new Callback() {
-                    @Override
-                    public void onFailure(Call call, IOException e) {
+            public void onFailure(Call call, IOException e) {
 
-                    }
-
-                    @Override
-                    public void onResponse(Call call, Response response) throws IOException {
-                        InputStream inputStream = response.body().byteStream();
-                        Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-                        inputStream.close();
-                        Message msg = Message.obtain(handler, CONFIG_PICTURE, bitmap);
-                        handler.sendMessage(msg);
-                    }
-                });
             }
-        }).start();
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                InputStream inputStream = response.body().byteStream();
+                Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+                inputStream.close();
+                Message msg = Message.obtain(handler, CONFIG_PICTURE, bitmap);
+                handler.sendMessage(msg);
+            }
+        });
     }
 
     private void configPicture(Bitmap bitmap) {
@@ -300,54 +301,39 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
     }
 
     private void configSearchWordResult(final JsTranslation jsTranslation) {
-        StringBuilder stringBuilder = new StringBuilder();
 
-        //音标
-        String en = "英式发音：" + jsTranslation.getPh_am();
-        String am = "美式发音：" + jsTranslation.getPh_am();
-        ph_en.setText(en);
-        ph_am.setText(am);
-        //发音
-        btnEnPron.setVisibility(View.VISIBLE);
-        btnAmPron.setVisibility(View.VISIBLE);
+        if (!jsTranslation.getWord().equals("Sorry！无法查询该单词")) {
+            //音标
+            String en = "英式发音：" + jsTranslation.getPh_am();
+            String am = "美式发音：" + jsTranslation.getPh_am();
+            ph_en.setText(en);
+            ph_am.setText(am);
+            //发音
+            btnEnPron.setVisibility(View.VISIBLE);
+            btnAmPron.setVisibility(View.VISIBLE);
 
-        cardView.setVisibility(View.VISIBLE);
+            cardView.setVisibility(View.VISIBLE);
 
-        //注册播放按钮事件
-        btnEnPron.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (jsTranslation.getPh_am_mp3() != null && !jsTranslation.getPh_en_mp3().equals(""))
-                    playFromRemoteURL(jsTranslation.getPh_en_mp3());
-                else Toast.makeText(getActivity(), "无音源", Toast.LENGTH_SHORT).show();
-            }
-        });
-        btnAmPron.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (jsTranslation.getPh_am_mp3() != null && !jsTranslation.getPh_am_mp3().equals(""))
-                    playFromRemoteURL(jsTranslation.getPh_am_mp3());
-                else Toast.makeText(getActivity(), "无音源", Toast.LENGTH_SHORT).show();
-            }
-        });
-        //拼接存到数据库中文翻译
-        final StringBuilder stringBuilder1 = new StringBuilder();
-        for (int i = 0; i < jsTranslation.getParts().size(); i++) {
-            stringBuilder1.append(jsTranslation.getParts().get(i));
-            for (int j = 0; j < jsTranslation.getMeans().get(i).length(); j++) {
-                try {
-                    if (j != jsTranslation.getMeans().get(i).length() - 1)
-                        stringBuilder1.append(jsTranslation.getMeans().get(i).get(j).toString());
-                    else
-                        stringBuilder1.append(jsTranslation.getMeans().get(i).get(j).toString()).append("\n");
-                } catch (JSONException e) {
-                    e.printStackTrace();
+            //注册播放按钮事件
+            btnEnPron.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (jsTranslation.getPh_am_mp3() != null && !jsTranslation.getPh_en_mp3().equals(""))
+                        playFromRemoteURL(jsTranslation.getPh_en_mp3());
+                    else Toast.makeText(getActivity(), "无音源", Toast.LENGTH_SHORT).show();
                 }
-            }
-        }
-        //注册添加到生词本按钮的事件
-        if (!jsTranslation.getWord().equals("无法查询该单词")) {
-            if (DatabaseHelper.queryIsExist(word)) {
+            });
+            btnAmPron.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (jsTranslation.getPh_am_mp3() != null && !jsTranslation.getPh_am_mp3().equals(""))
+                        playFromRemoteURL(jsTranslation.getPh_am_mp3());
+                    else Toast.makeText(getActivity(), "无音源", Toast.LENGTH_SHORT).show();
+                }
+            });
+
+            boolean isExist = TranslationLab.get(getActivity()).queryNewWord(jsTranslation.getWord());
+            if (isExist) {
                 btnAddToGlossary.setEnabled(false);
                 btnAddToGlossary.setVisibility(View.VISIBLE);
                 btnAddToGlossary.setText("已加入生词本");
@@ -357,32 +343,23 @@ public class FragmentOnline extends android.support.v4.app.Fragment {
                 btnAddToGlossary.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        DatabaseHelper.insertGlossary(word, stringBuilder1.toString(), "");
+                        NewWord newWord = new NewWord();
+                        newWord.setEn_word(jsTranslation.getWord());
+                        newWord.setZh_word("");
+                        newWord.setExplanation(jsTranslation.getExplanation());
+                        TranslationLab.get(getActivity()).addNewWord(newWord);
                         btnAddToGlossary.setEnabled(false);
                         btnAddToGlossary.setText("已加入生词本");
                     }
                 });
             }
+
+            tvExplanation.setText(jsTranslation.getExplanation().replace('/', '\n'));
+            tvWord.setText(jsTranslation.getWord());
         } else {
+            Toast.makeText(getActivity(), jsTranslation.getWord(), Toast.LENGTH_SHORT).show();
             btnAddToGlossary.setVisibility(View.INVISIBLE);
         }
-
-        //释义 拼接用来显示的中文翻译
-        for (int i = 0; i < jsTranslation.getParts().size(); i++) {
-            stringBuilder.append(jsTranslation.getParts().get(i)).append("  ");
-            for (int j = 0; j < jsTranslation.getMeans().get(i).length(); j++) {
-                try {
-                    if (j != jsTranslation.getMeans().get(i).length() - 1)
-                        stringBuilder.append(jsTranslation.getMeans().get(i).get(j).toString());
-                    else
-                        stringBuilder.append(jsTranslation.getMeans().get(i).get(j).toString()).append("\n");
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        tvOut.setText(stringBuilder.toString());
-        tvWord.setText(jsTranslation.getWord());
     }
 
     private void playFromRemoteURL(String url) {

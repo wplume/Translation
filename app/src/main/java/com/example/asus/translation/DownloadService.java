@@ -5,12 +5,13 @@ import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
-import android.nfc.Tag;
 import android.os.Binder;
 import android.os.Environment;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
+
+import com.example.asus.translation.activity.MainActivity;
 
 import java.io.File;
 
@@ -68,8 +69,8 @@ public class DownloadService extends Service {
     }
 
     // 设计Binder类
-    class DownloadBinder extends Binder {
-        void startDownload(String url) {
+    public class DownloadBinder extends Binder {
+        public void startDownload(String url) {
             if (downloadTask == null) {
                 downloadUrl = url;
                 downloadTask = new DownloadTask(listener);

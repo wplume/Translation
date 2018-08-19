@@ -1,12 +1,11 @@
-package com.example.asus.translation;
+package com.example.asus.translation.fragment;
 
 
+import android.app.Activity;
 import android.content.Context;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.design.widget.BottomNavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
@@ -17,15 +16,19 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
-import android.widget.LinearLayout;
 import android.widget.ListView;
-import android.widget.TextView;
+
+import com.example.asus.translation.R;
+import com.example.asus.translation.TranslationLab;
+import com.example.asus.translation.adapter.AdapterLV;
 
 import java.util.ArrayList;
+import java.util.List;
+
+import static com.example.asus.translation.db.TranslationDBSchema.*;
 
 
 /**
@@ -34,12 +37,10 @@ import java.util.ArrayList;
 public class FragmentVocabulary extends Fragment {
     private static final String TAG = FragmentVocabulary.class.toString();
 
-    SQLiteDatabase database;
     ListView listView;
     AdapterLV adapterLV;
     View view;
     Cursor cursor;
-    private String[] col;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -67,7 +68,6 @@ public class FragmentVocabulary extends Fragment {
         //设置空视图
         listView.setEmptyView(LayoutInflater.from(getActivity()).inflate(R.layout.empty_view, null));
 
-        database = DatabaseHelper.getDatabaseHelper(getActivity()).getWritableDatabase();
         queryAll();
 
         return view;
@@ -100,10 +100,10 @@ public class FragmentVocabulary extends Fragment {
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                cursor = DatabaseHelper.characterMatchingQuery(
-                        DatabaseHelper.OFFLINE_DICTIONARY_TABLE_NAME,
-                        col,
-                        newText + "%");
+                cursor = TranslationLab.get(getActivity()).queryOfflineWord(
+                        VocabularyTable.Col.EN_WORD + " like?",
+                        new String[]{newText + "%"}
+                );
                 adapterLV = new AdapterLV(getActivity(), cursor);
                 listView.setAdapter(adapterLV);
                 return false;
@@ -115,25 +115,29 @@ public class FragmentVocabulary extends Fragment {
      * 关闭软键盘
      */
     private void closeSoftKeyBoard() {
-        ((InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE))
-                .hideSoftInputFromWindow(getActivity().getWindow().getDecorView().getWindowToken(), 0);
+        Activity activity = getActivity();
+        if (activity != null) {
+            InputMethodManager manager = ((InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE));
+            if (manager != null) {
+                manager.hideSoftInputFromWindow(getActivity().getWindow().getDecorView().getWindowToken(), 0);
+            }
+        }
     }
 
-    private ArrayList<String> enList = new ArrayList<>();
-    private ArrayList<String> zhList = new ArrayList<>();
-    private ArrayList<String> explanationList = new ArrayList<>();
+    private List<String> enList = new ArrayList<>();
+    private List<String> zhList = new ArrayList<>();
+    private List<String> explanationList = new ArrayList<>();
 
     void queryAll() {
         //_id 是以为SimpleCursorAdapter from必须要有一个_id列
-        col = new String[]{DatabaseHelper.EN_WORD_COL1 + " as _id", DatabaseHelper.ZH_WORD_COL2, DatabaseHelper.EXPLANATION};
         //查询所有
-        cursor = database.query(DatabaseHelper.OFFLINE_DICTIONARY_TABLE_NAME, col, null, null, null, null, null);
+        cursor = TranslationLab.get(getActivity()).queryOfflineWord(null, null);
 
         Log.d(TAG, "匹配个数:" + cursor.getCount());
 
-        int i = cursor.getColumnIndex("_id");
-        int j = cursor.getColumnIndex(DatabaseHelper.ZH_WORD_COL2);
-        int k = cursor.getColumnIndex(DatabaseHelper.EXPLANATION);
+        int i = cursor.getColumnIndex(VocabularyTable.Col.EN_WORD);
+        int j = cursor.getColumnIndex(VocabularyTable.Col.ZH_WORD);
+        int k = cursor.getColumnIndex(VocabularyTable.Col.EXPLANATION);
         cursor.moveToFirst();
         for (cursor.isBeforeFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
             enList.add(cursor.getString(i));
@@ -147,12 +151,12 @@ public class FragmentVocabulary extends Fragment {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                closeSoftKeyBoard();
                 //第一个参数是父级，第二个参数是当前item，第三个是在listView中适配器里的位置，id是当前item在ListView里的第几行的位置
+                closeSoftKeyBoard();
                 Bundle bundle = new Bundle();
-                bundle.putStringArrayList(DatabaseHelper.EN_WORD_COL1, enList);
-                bundle.putStringArrayList(DatabaseHelper.ZH_WORD_COL2, zhList);
-                bundle.putStringArrayList(DatabaseHelper.EXPLANATION, explanationList);
+                bundle.putStringArrayList(VocabularyTable.Col.EN_WORD, (ArrayList<String>) enList);
+                bundle.putStringArrayList(VocabularyTable.Col.ZH_WORD, (ArrayList<String>) zhList);
+                bundle.putStringArrayList(VocabularyTable.Col.EXPLANATION, (ArrayList<String>) explanationList);
                 bundle.putInt("position", position);
                 bundle.putBoolean("isVisible_btnFloat", true);
                 FragmentCardMode fragmentCard = new FragmentCardMode();

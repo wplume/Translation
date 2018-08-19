@@ -1,5 +1,6 @@
-package com.example.asus.translation;
+package com.example.asus.translation.adapter;
 
+import android.support.annotation.NonNull;
 import android.support.v4.view.PagerAdapter;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,7 +10,7 @@ import java.util.ArrayList;
 public class AdapterVP extends PagerAdapter {
     private ArrayList<View> arrayList = null;
 
-    AdapterVP(ArrayList<View> arrayList) {
+    public AdapterVP(ArrayList<View> arrayList) {
         super();
         this.arrayList = arrayList;
     }
@@ -20,18 +21,19 @@ public class AdapterVP extends PagerAdapter {
     }
 
     @Override
-    public boolean isViewFromObject(View view, Object object) {
+    public boolean isViewFromObject(@NonNull View view, @NonNull Object object) {
         return view == object;
     }
 
+    @NonNull
     @Override
-    public Object instantiateItem(ViewGroup container, int position) {
+    public Object instantiateItem(@NonNull ViewGroup container, int position) {
         container.addView(arrayList.get(position));
         return arrayList.get(position);
     }
 
     @Override
-    public void destroyItem(ViewGroup container, int position, Object object) {
+    public void destroyItem(@NonNull ViewGroup container, int position, @NonNull Object object) {
         container.removeView(arrayList.get(position));
     }
 }

@@ -1,4 +1,4 @@
-package com.example.asus.translation;
+package com.example.asus.translation.activity;
 
 import android.Manifest;
 import android.content.ComponentName;
@@ -27,12 +27,31 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Toast;
 
+import com.example.asus.translation.DatabaseHelper;
+import com.example.asus.translation.DownloadService;
+import com.example.asus.translation.fragment.FragmentAboutDialog;
+import com.example.asus.translation.fragment.FragmentDownloadUpdateDialog;
+import com.example.asus.translation.fragment.FragmentGlossary;
+import com.example.asus.translation.fragment.FragmentHome;
+import com.example.asus.translation.fragment.FragmentVocabulary;
+import com.example.asus.translation.R;
+import com.example.asus.translation.TranslationLab;
+import com.example.asus.translation.bean.OfflineWord;
+import com.example.asus.translation.util.HttpUtil;
+
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.poifs.filesystem.NPOIFSFileSystem;
+import org.apache.poi.ss.usermodel.Row;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.Iterator;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -56,8 +75,7 @@ public class MainActivity extends AppCompatActivity implements
 
     BottomNavigationView bottomNavigationView;
 
-    boolean isDatabaseFileExist;
-    private FragmentOnline fragmentOnline;
+    private FragmentHome fragmentHome;
     private FragmentVocabulary fragmentVocabulary;
     private FragmentGlossary fragmentGlossary;
     private FragmentManager fragmentManager;
@@ -92,21 +110,7 @@ public class MainActivity extends AppCompatActivity implements
                             | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
         }
 
-//        DatabaseHelper.deleteDatabase(this);
-
-        // 因为 new DatabaseHelper()无论存在不存在，都会创建一个数据库文件，所以需要提前标志，用来判断需不需要写入数据
-        if ((new File(getDatabasePath(DATABASE_FILENAME).getPath())).exists()) {
-            isDatabaseFileExist = true;
-            Log.d(TAG, "数据库文件已存在");
-        } else {
-            isDatabaseFileExist = false;
-            Log.d(TAG, "数据库文件不存在");
-        }
-
-        DatabaseHelper databaseHelper = DatabaseHelper.getDatabaseHelper(this);
-        if (!isDatabaseFileExist) {
-            databaseHelper.write();
-        }
+        if (!(new File(getDatabasePath(DATABASE_FILENAME).getPath())).exists()) write();
 
         // 设置侧边栏里面的NavigationView
         NavigationView navigationView = findViewById(R.id.navigation);
@@ -131,10 +135,10 @@ public class MainActivity extends AppCompatActivity implements
 
         // 设置初始页面
         fragmentManager = getSupportFragmentManager();
-        fragmentOnline = new FragmentOnline();
+        fragmentHome = new FragmentHome();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-        fragmentTransaction.add(R.id.main_container, fragmentOnline).commit();
-        lastFragment = fragmentOnline;
+        fragmentTransaction.add(R.id.main_container, fragmentHome).commit();
+        lastFragment = fragmentHome;
 
         bottomNavigationView = findViewById(R.id.bottom_navigation_view);
         bottomNavigationView.setOnNavigationItemSelectedListener(this);
@@ -266,17 +270,17 @@ public class MainActivity extends AppCompatActivity implements
         switch (item.getItemId()) {
             case R.id.bottom_home:
                 Log.d(TAG, "点击了首页");
-                if (fragmentOnline == null) {
-                    fragmentOnline = new FragmentOnline();
-                    fragmentTransaction.add(R.id.main_container, fragmentOnline);
+                if (fragmentHome == null) {
+                    fragmentHome = new FragmentHome();
+                    fragmentTransaction.add(R.id.main_container, fragmentHome);
                     fragmentTransaction.hide(lastFragment);
                 } else {
-                    if (!lastFragment.equals(fragmentOnline)) {
-                        fragmentTransaction.show(fragmentOnline);
+                    if (!lastFragment.equals(fragmentHome)) {
+                        fragmentTransaction.show(fragmentHome);
                         fragmentTransaction.hide(lastFragment);
                     }
                 }
-                lastFragment = fragmentOnline;
+                lastFragment = fragmentHome;
                 break;
 
             case R.id.bottom_offline:
@@ -313,7 +317,35 @@ public class MainActivity extends AppCompatActivity implements
         return true;
     }
 
-    interface SearchCallBack {
+    public interface SearchCallBack {
         void setSearchCallback();
+    }
+
+    private void write() {
+        Log.d(TAG, "将xls文件数据读入数据库的表");
+        try {
+            //.xls文件放在assets文件夹
+            InputStream inputStream = getAssets().open(DatabaseHelper.XLS_FILENAME);
+            //数据流方式读取，不过文件方式读取的话会更快
+            NPOIFSFileSystem fileSystem = new NPOIFSFileSystem(inputStream);
+            HSSFWorkbook workbook = new HSSFWorkbook(fileSystem.getRoot(), true);
+            HSSFSheet sheet = workbook.getSheetAt(0);
+            Iterator<Row> rows = sheet.rowIterator();
+            while (rows.hasNext()) {
+                HSSFRow row = (HSSFRow) rows.next();
+                if (row.getRowNum() != 0) {
+                    OfflineWord offlineWord = new OfflineWord();
+                    offlineWord.setEn_word(row.getCell(0).toString());
+                    offlineWord.setZh_word(row.getCell(1).toString());
+                    offlineWord.setExplanation(row.getCell(2).toString());
+                    TranslationLab.get(this).addOfflineWord(offlineWord);
+                }
+            }
+            Log.d(TAG, "读取完成");
+            inputStream.close();
+            fileSystem.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

@@ -1,4 +1,4 @@
-package com.example.asus.translation;
+package com.example.asus.translation.fragment;
 
 import android.app.AlertDialog;
 import android.app.Dialog;

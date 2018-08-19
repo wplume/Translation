@@ -1,31 +1,37 @@
-package com.example.asus.translation;
+package com.example.asus.translation.adapter;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.CheckBox;
-import android.widget.Filter;
-import android.widget.Filterable;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 
-class AdapterLV extends BaseAdapter {
+import com.example.asus.translation.R;
+
+public class AdapterLV extends BaseAdapter {
+
+    private static final String TAG = AdapterLV.class.getName();
+
     private Context context;
     private Cursor cursor;
-    private boolean isVisible = false;
+    private int isVisible = CheckBox.INVISIBLE;
 
-    AdapterLV(Context context, Cursor cursor) {
+    public void setVisible(int visible) {
+        isVisible = visible;
+    }
+
+    public AdapterLV(Context context, Cursor cursor) {
         this.context = context;
         this.cursor = cursor;
     }
 
     @Override
     public int getCount() {
-//        Toast.makeText(context, Integer.toString(cursor.getCount()), Toast.LENGTH_SHORT).show();
         return cursor.getCount();
     }
 
@@ -61,18 +67,14 @@ class AdapterLV extends BaseAdapter {
             viewHolder = (ViewHolder) convertView.getTag();
         }
 
-        //对UI设置对应的文字
         cursor.moveToPosition(position);
         viewHolder.textView1.setText(cursor.getString(0));
-        viewHolder.textView2.setText(cursor.getString(1));
+        viewHolder.textView2.setText(!cursor.getString(1).equals("") ? cursor.getString(1) : cursor.getString(2));
 
-        //对CheckBox设置是否可见
-        if (isVisible) {
-            viewHolder.checkBox.setVisibility(CheckBox.VISIBLE);
-        } else {
-            viewHolder.checkBox.setVisibility(CheckBox.INVISIBLE);
-        }
-        //对CheckBox设置是否勾选
+        //是否可见
+        viewHolder.checkBox.setVisibility(isVisible);
+
+        //是否勾选
         viewHolder.checkBox.setChecked(((ListView) parent).isItemChecked(position));
         return convertView;
     }
@@ -81,9 +83,5 @@ class AdapterLV extends BaseAdapter {
         TextView textView1;
         TextView textView2;
         CheckBox checkBox;
-    }
-
-    void setVisible(boolean visible) {
-        isVisible = visible;
     }
 }

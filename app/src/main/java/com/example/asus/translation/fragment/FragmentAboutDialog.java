@@ -1,4 +1,4 @@
-package com.example.asus.translation;
+package com.example.asus.translation.fragment;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -13,7 +13,8 @@ public class FragmentAboutDialog extends DialogFragment {
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         builder.setTitle("关于")
-                .setMessage("com.windplume.pri.translation" + "\n" + "\n" +
+                .setMessage(
+                        "com.windplume.pri.translation" + "\n" + "\n" +
                         "https://github.com/wplume/Translation" + "\n" + "\n" +
                         "windplume.mail@gmail.com" + "\n" +
                         "337540029@qq.com" + "\n" + "\n" +

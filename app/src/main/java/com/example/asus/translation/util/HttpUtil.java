@@ -1,10 +1,11 @@
-package com.example.asus.translation;
+package com.example.asus.translation.util;
+
+import com.example.asus.translation.HttpCallback;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -17,6 +18,7 @@ import okhttp3.RequestBody;
 
 public class HttpUtil {
 
+    @SuppressWarnings("unused")
     private static final String TAG = HttpUtil.class.getName();
 
     /**

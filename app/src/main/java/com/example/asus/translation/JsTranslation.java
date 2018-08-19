@@ -1,12 +1,16 @@
 package com.example.asus.translation;
 
+import android.util.Log;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
 
-class JsTranslation {
+public class JsTranslation {
+    private static final String TAG = JsTranslation.class.getName();
+
     public String getWord() {
         return word;
     }
@@ -63,7 +67,16 @@ class JsTranslation {
         this.means = means;
     }
 
+    public String getExplanation() {
+        return explanation;
+    }
+
+    public void setExplanation(String explanation) {
+        this.explanation = explanation;
+    }
+
     private String word;
+    private String explanation;
     private String ph_en;
     private String ph_am;
     private String ph_en_mp3;
@@ -73,10 +86,10 @@ class JsTranslation {
     private ArrayList<String> parts = new ArrayList<>();
     private ArrayList<JSONArray> means = new ArrayList<>();
 
-    JsTranslation(JSONObject jsonObject) {
+    public JsTranslation(JSONObject jsonObject) {
         try {
             //toString的参数是缩进的意思
-            System.out.println(jsonObject.toString(4));
+            Log.d(TAG, jsonObject.toString(4));
 
             setWord(jsonObject.getString("word_name"));
 
@@ -88,12 +101,30 @@ class JsTranslation {
             setPh_en_mp3(js.getString("ph_en_mp3"));
             setPh_am_mp3(js.getString("ph_am_mp3"));
             JSONArray parts = js.getJSONArray("parts");
+
+            //拼装explanation（词性和对应的词义，使用“/”将它们划分）
+            StringBuilder builder = new StringBuilder();
             for (int i = 0; i < parts.length(); i++) {
-                getParts().add(parts.getJSONObject(i).getString("part"));
-                getMeans().add(parts.getJSONObject(i).getJSONArray("means"));
+                String part = parts.getJSONObject(i).getString("part");
+                JSONArray means = parts.getJSONObject(i).getJSONArray("means");
+                getParts().add(part);
+                getMeans().add(means);
+
+                StringBuilder builder1 = new StringBuilder();
+                for (int j = 0; j < means.length(); j++) {
+                    if (j != means.length() - 1) {
+                        builder1.append(means.get(j).toString()).append("；");
+                    } else {
+                        builder1.append(means.get(j).toString()).append("/");
+                    }
+                }
+
+                builder.append(part).append(builder1);
             }
+            setExplanation(builder.toString());
+            Log.d(TAG, "JsTranslation: " + getExplanation());
         } catch (JSONException e) {
-            word = "无法查询该单词";
+            setWord("Sorry！无法查询该单词");
             e.printStackTrace();
         }
     }
