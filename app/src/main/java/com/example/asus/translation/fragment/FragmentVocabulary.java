@@ -3,8 +3,8 @@ package com.example.asus.translation.fragment;
 
 import android.app.Activity;
 import android.content.Context;
-import android.database.Cursor;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
@@ -24,6 +24,9 @@ import android.widget.ListView;
 import com.example.asus.translation.R;
 import com.example.asus.translation.TranslationLab;
 import com.example.asus.translation.adapter.AdapterLV;
+import com.example.asus.translation.bean.NewWord;
+import com.example.asus.translation.bean.OfflineWord;
+import com.example.asus.translation.db.BeanCursorWrapper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +43,7 @@ public class FragmentVocabulary extends Fragment {
     ListView listView;
     AdapterLV adapterLV;
     View view;
-    Cursor cursor;
+    BeanCursorWrapper beanCursorWrapper;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -76,7 +79,7 @@ public class FragmentVocabulary extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        cursor.close();
+        beanCursorWrapper.close();
     }
 
     @Override
@@ -100,11 +103,11 @@ public class FragmentVocabulary extends Fragment {
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                cursor = TranslationLab.get(getActivity()).queryOfflineWord(
+                beanCursorWrapper = TranslationLab.get(getActivity()).queryOfflineWord(
                         VocabularyTable.Col.EN_WORD + " like?",
                         new String[]{newText + "%"}
                 );
-                adapterLV = new AdapterLV(getActivity(), cursor);
+                adapterLV = new AdapterLV(getActivity(), beanCursorWrapper);
                 listView.setAdapter(adapterLV);
                 return false;
             }
@@ -124,28 +127,26 @@ public class FragmentVocabulary extends Fragment {
         }
     }
 
-    private List<String> enList = new ArrayList<>();
-    private List<String> zhList = new ArrayList<>();
-    private List<String> explanationList = new ArrayList<>();
+    private List<FragmentCardMode.ShowFormat> showFormatList = new ArrayList<>();
 
     void queryAll() {
         //_id 是以为SimpleCursorAdapter from必须要有一个_id列
         //查询所有
-        cursor = TranslationLab.get(getActivity()).queryOfflineWord(null, null);
+        beanCursorWrapper = TranslationLab.get(getActivity()).queryOfflineWord(null, null);
 
-        Log.d(TAG, "匹配个数:" + cursor.getCount());
+        Log.d(TAG, "匹配个数:" + beanCursorWrapper.getCount());
 
-        int i = cursor.getColumnIndex(VocabularyTable.Col.EN_WORD);
-        int j = cursor.getColumnIndex(VocabularyTable.Col.ZH_WORD);
-        int k = cursor.getColumnIndex(VocabularyTable.Col.EXPLANATION);
-        cursor.moveToFirst();
-        for (cursor.isBeforeFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
-            enList.add(cursor.getString(i));
-            zhList.add(cursor.getString(j));
-            explanationList.add(cursor.getString(k));
+        beanCursorWrapper.moveToFirst();
+        for (beanCursorWrapper.isBeforeFirst(); !beanCursorWrapper.isAfterLast(); beanCursorWrapper.moveToNext()) {
+            OfflineWord offlineWord = beanCursorWrapper.getOfflineWord();
+            FragmentCardMode.ShowFormat showFormat = new FragmentCardMode.ShowFormat();
+            showFormat.setEn_word(offlineWord.getEn_word());
+            showFormat.setZh_word(offlineWord.getZh_word());
+            showFormat.setExplanation(offlineWord.getExplanation());
+            showFormatList.add(showFormat);
         }
 
-        adapterLV = new AdapterLV(getActivity(), cursor);
+        adapterLV = new AdapterLV(getActivity(), beanCursorWrapper);
         listView.setAdapter(adapterLV);
 
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -153,16 +154,17 @@ public class FragmentVocabulary extends Fragment {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 //第一个参数是父级，第二个参数是当前item，第三个是在listView中适配器里的位置，id是当前item在ListView里的第几行的位置
                 closeSoftKeyBoard();
-                Bundle bundle = new Bundle();
-                bundle.putStringArrayList(VocabularyTable.Col.EN_WORD, (ArrayList<String>) enList);
-                bundle.putStringArrayList(VocabularyTable.Col.ZH_WORD, (ArrayList<String>) zhList);
-                bundle.putStringArrayList(VocabularyTable.Col.EXPLANATION, (ArrayList<String>) explanationList);
-                bundle.putInt("position", position);
-                bundle.putBoolean("isVisible_btnFloat", true);
-                FragmentCardMode fragmentCard = new FragmentCardMode();
-                fragmentCard.setArguments(bundle);
-                getActivity().getSupportFragmentManager().beginTransaction().addToBackStack(null).
-                        replace(R.id.aux_framelayout, fragmentCard).commit();
+
+                FragmentCardMode fragmentCard = FragmentCardMode.newInstance(
+                        position,
+                        true,
+                        (ArrayList<? extends Parcelable>) showFormatList
+                );
+                getActivity().getSupportFragmentManager()
+                        .beginTransaction()
+                        .addToBackStack(null)
+                        .replace(R.id.aux_framelayout, fragmentCard)
+                        .commit();
             }
         });
     }

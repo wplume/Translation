@@ -61,8 +61,6 @@ public class MainActivity extends AppCompatActivity implements
         FragmentDownloadUpdateDialog.DownloadUpdateDialogListener,
         BottomNavigationView.OnNavigationItemSelectedListener {
 
-    private static String TAG = MainActivity.class.getName();
-
     private static final String DATABASE_FILENAME = "BioDic.db";
     /**
      * 获取最新软件版本号的地址
@@ -72,14 +70,61 @@ public class MainActivity extends AppCompatActivity implements
      * 获取最新软件apk文件的地址
      */
     private static final String downloadUrl = "https://github.com/wplume/Translation/raw/master/app/release/app-release.apk";
-
+    private static String TAG = MainActivity.class.getName();
     BottomNavigationView bottomNavigationView;
+    Handler checkUpdateHandler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(Message msg) {
+            try {
+                int newestVersionCode = (int) msg.obj;
+                int currentVersionCode = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode;
 
+                Log.d(TAG, "当前版本为：" + currentVersionCode + " / " + "服务器版本为：" + newestVersionCode);
+
+                if (currentVersionCode == newestVersionCode) {
+                    Toast.makeText(MainActivity.this, "您当前已经是最新版本" + newestVersionCode, Toast.LENGTH_SHORT).show();
+                } else {
+                    FragmentDownloadUpdateDialog dialog = new FragmentDownloadUpdateDialog();
+                    dialog.show(getSupportFragmentManager(), "DownloadUpdateDialog");
+                }
+            } catch (PackageManager.NameNotFoundException e) {
+                e.printStackTrace();
+            }
+
+            return false;
+        }
+    });
+    // 这里使用的是OkHttp自带的回调接口
+    Callback checkUpdateCallback = new Callback() {
+        @Override
+        public void onFailure(Call call, IOException e) {
+            Toast.makeText(MainActivity.this, "检查失败", Toast.LENGTH_SHORT).show();
+        }
+
+        @Override
+        public void onResponse(Call call, Response response) throws IOException {
+            try {
+                String str = response.body().string();
+                JSONArray array = new JSONArray(str);
+                JSONObject js = array.getJSONObject(0);
+                JSONObject js1 = js.getJSONObject("apkInfo");
+                int versionCode = js1.getInt("versionCode");
+
+                Message msg = new Message();
+                msg.obj = versionCode;
+                checkUpdateHandler.sendMessage(msg);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+    };
     private FragmentHome fragmentHome;
     private FragmentVocabulary fragmentVocabulary;
     private FragmentGlossary fragmentGlossary;
     private FragmentManager fragmentManager;
     private Fragment lastFragment;
+    private ServiceConnection serviceConnection = null;
+    private SearchCallBack searchCallBack;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -153,29 +198,6 @@ public class MainActivity extends AppCompatActivity implements
             unbindService(serviceConnection);
     }
 
-    Handler checkUpdateHandler = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(Message msg) {
-            try {
-                int newestVersionCode = (int) msg.obj;
-                int currentVersionCode = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode;
-
-                Log.d(TAG, "当前版本为：" + currentVersionCode + " / " + "服务器版本为：" + newestVersionCode);
-
-                if (currentVersionCode == newestVersionCode) {
-                    Toast.makeText(MainActivity.this, "您当前已经是最新版本" + newestVersionCode, Toast.LENGTH_SHORT).show();
-                } else {
-                    FragmentDownloadUpdateDialog dialog = new FragmentDownloadUpdateDialog();
-                    dialog.show(getSupportFragmentManager(), "DownloadUpdateDialog");
-                }
-            } catch (PackageManager.NameNotFoundException e) {
-                e.printStackTrace();
-            }
-
-            return false;
-        }
-    });
-
     // 权限请求回调
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -190,41 +212,12 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
-    // 这里使用的是OkHttp自带的回调接口
-    Callback checkUpdateCallback = new Callback() {
-        @Override
-        public void onFailure(Call call, IOException e) {
-            Toast.makeText(MainActivity.this, "检查失败", Toast.LENGTH_SHORT).show();
-        }
-
-        @Override
-        public void onResponse(Call call, Response response) throws IOException {
-            try {
-                String str = response.body().string();
-                JSONArray array = new JSONArray(str);
-                JSONObject js = array.getJSONObject(0);
-                JSONObject js1 = js.getJSONObject("apkInfo");
-                int versionCode = js1.getInt("versionCode");
-
-                Message msg = new Message();
-                msg.obj = versionCode;
-                checkUpdateHandler.sendMessage(msg);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-    };
-
-    private ServiceConnection serviceConnection = null;
-
     @Override
     protected void onNewIntent(Intent intent) {
         setIntent(intent);
         if (searchCallBack != null)
             searchCallBack.setSearchCallback();
     }
-
-    private SearchCallBack searchCallBack;
 
     public void setSearchCallBack(SearchCallBack searchCallBack) {
         this.searchCallBack = searchCallBack;
@@ -317,12 +310,8 @@ public class MainActivity extends AppCompatActivity implements
         return true;
     }
 
-    public interface SearchCallBack {
-        void setSearchCallback();
-    }
-
     private void write() {
-        Log.d(TAG, "将xls文件数据读入数据库的表");
+        Log.d(TAG, "将xls文件数据读入数据库的词汇表");
         try {
             //.xls文件放在assets文件夹
             InputStream inputStream = getAssets().open(DatabaseHelper.XLS_FILENAME);
@@ -347,5 +336,9 @@ public class MainActivity extends AppCompatActivity implements
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public interface SearchCallBack {
+        void setSearchCallback();
     }
 }

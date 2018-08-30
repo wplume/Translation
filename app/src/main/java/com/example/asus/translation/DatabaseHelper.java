@@ -9,12 +9,11 @@ import static com.example.asus.translation.db.TranslationDBSchema.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
 
-    private static final String TAG = SQLiteOpenHelper.class.getName();
-
     /**
      * 需要读取的xls文件名
      */
     public static final String XLS_FILENAME = "BioDicXls.xls";
+    private static final String TAG = SQLiteOpenHelper.class.getName();
     /**
      * 数据库文件名
      */
@@ -22,6 +21,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     DatabaseHelper(Context context) {
         super(context, DATABASE_FILENAME, null, 3);
+    }
+
+    @SuppressWarnings("unused")
+    public static void deleteDatabase(Context context) {
+        if (context.getDatabasePath(DATABASE_FILENAME).exists()) {
+            Log.d(TAG, "存在数据库文件");
+            context.deleteDatabase(DATABASE_FILENAME);
+            Log.d(TAG, "删除成功");
+        }
     }
 
     @Override
@@ -50,14 +58,5 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         String s1 = String.format("drop table if exists %s", GlossaryTable.NAME);
         db.execSQL(s);
         db.execSQL(s1);
-    }
-
-    @SuppressWarnings("unused")
-    public static void deleteDatabase(Context context) {
-        if (context.getDatabasePath(DATABASE_FILENAME).exists()) {
-            Log.d(TAG, "存在数据库文件");
-            context.deleteDatabase(DATABASE_FILENAME);
-            Log.d(TAG, "删除成功");
-        }
     }
 }

@@ -44,14 +44,12 @@ import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
-import java.util.Observable;
-import java.util.Observer;
 
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Response;
 
-public class FragmentHome extends Fragment{
+public class FragmentHome extends Fragment {
 
 
     private static final String TAG = FragmentHome.class.toString();
@@ -72,11 +70,11 @@ public class FragmentHome extends Fragment{
     private Toolbar toolbar;
     private CardView cardView;
 
-    private static final String url = "http://open.iciba.com/dsapi/?date=";
+    private static final String URL = "http://open.iciba.com/dsapi/?date=";
     /**
      * 金山api申请到的key，查词的时候需要和词一起传给服务器
      */
-    private static final String key = "8B1845F228CA3D723DC68AEF651CCCDD";
+    private static final String KEY = "8B1845F228CA3D723DC68AEF651CCCDD";
     SimpleDateFormat simpleDateFormat;
     String date;
     String word;
@@ -106,6 +104,13 @@ public class FragmentHome extends Fragment{
         doRequest();
 
         return view;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        //防止Activity内存泄漏
+        handler.removeCallbacksAndMessages(null);
     }
 
     private void initHandler() {
@@ -177,7 +182,7 @@ public class FragmentHome extends Fragment{
     private void doRequest() {
 
         if (isConnect) {
-            HttpUtil.sendOkHttpGetRequest(url + date, new Callback() {
+            HttpUtil.sendOkHttpGetRequest(URL + date, new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
                     Log.e(TAG, "onFailure: ", e);
@@ -238,7 +243,7 @@ public class FragmentHome extends Fragment{
                     searchRecentSuggestions.saveRecentQuery(word, null);
 
                     if (isConnect) {
-                        String url = String.format("http://dict-co.iciba.com/api/dictionary.php?w=%s&type=json&key=%s", word, key);
+                        String url = String.format("http://dict-co.iciba.com/api/dictionary.php?w=%s&type=json&key=%s", word, KEY);
                         HttpUtil.sendOkHttpGetRequest(url, new Callback() {
                             @Override
                             public void onFailure(Call call, IOException e) {
@@ -340,6 +345,7 @@ public class FragmentHome extends Fragment{
             } else {
                 btnAddToGlossary.setEnabled(true);
                 btnAddToGlossary.setVisibility(View.VISIBLE);
+                btnAddToGlossary.setText("加入生词本");
                 btnAddToGlossary.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {

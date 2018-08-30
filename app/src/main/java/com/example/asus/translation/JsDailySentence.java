@@ -9,6 +9,17 @@ public class JsDailySentence {
     private String picture;
     private String picture2;
 
+    public JsDailySentence(JSONObject jsonObject){
+        try {
+            setContent(jsonObject.getString("content"));
+            setNote(jsonObject.getString("note"));
+            setPicture(jsonObject.getString("picture"));
+            setPicture2(jsonObject.getString("picture2"));
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
     public String getContent() {
         return content;
     }
@@ -39,16 +50,5 @@ public class JsDailySentence {
 
     public void setPicture2(String picture2) {
         this.picture2 = picture2;
-    }
-
-    public JsDailySentence(JSONObject jsonObject){
-        try {
-            setContent(jsonObject.getString("content"));
-            setNote(jsonObject.getString("note"));
-            setPicture(jsonObject.getString("picture"));
-            setPicture2(jsonObject.getString("picture2"));
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
     }
 }

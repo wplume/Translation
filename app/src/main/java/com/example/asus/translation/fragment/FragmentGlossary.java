@@ -1,9 +1,8 @@
 package com.example.asus.translation.fragment;
 
-import android.content.Context;
 import android.content.DialogInterface;
-import android.database.Cursor;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -11,7 +10,6 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
-import android.util.Printer;
 import android.view.ActionMode;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -19,35 +17,31 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
+import android.widget.AbsListView.MultiChoiceModeListener;
 import android.widget.AdapterView;
 import android.widget.CheckBox;
 import android.widget.ListView;
-import android.widget.Toast;
 
 import com.example.asus.translation.R;
 import com.example.asus.translation.TranslationLab;
 import com.example.asus.translation.adapter.AdapterLV;
+import com.example.asus.translation.bean.NewWord;
+import com.example.asus.translation.db.BeanCursorWrapper;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 
-import static com.example.asus.translation.db.TranslationDBSchema.*;
-
-/**
- * Created by asus on 2017/12/7.
- */
 public class FragmentGlossary extends Fragment implements Observer {
     private static final String TAG = FragmentGlossary.class.toString();
 
     View view;
     ListView listView;
     AdapterLV adapterLV;
-    private Cursor cursor;
+    private BeanCursorWrapper beanCursorWrapper;
 
-    ArrayList<String> enList = new ArrayList<>();
-    ArrayList<String> zhList = new ArrayList<>();
-    ArrayList<String> explanationList = new ArrayList<>();
+    private List<FragmentCardMode.ShowFormat> showFormatList = new ArrayList<>();
     private ActionModeCallback actionModeCallback;
 
     @Nullable
@@ -81,14 +75,13 @@ public class FragmentGlossary extends Fragment implements Observer {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 //第一个参数是父级，第二个参数是当前item，第三个是在listView中适配器里的位置，id是当前item在ListView里的第几行的位置
                 if (position != listView.getCount() - 1) {
-                    Bundle bundle = new Bundle();
-                    bundle.putStringArrayList(GlossaryTable.Col.EN_WORD, enList);
-                    bundle.putStringArrayList(GlossaryTable.Col.ZH_WORD, zhList);
-                    bundle.putStringArrayList(GlossaryTable.Col.EXPLANATION, explanationList);
-                    bundle.putInt("position", position);
 
-                    FragmentCardMode fragmentCard = new FragmentCardMode();
-                    fragmentCard.setArguments(bundle);
+                    FragmentCardMode fragmentCard = FragmentCardMode.newInstance(
+                            position,
+                            false,
+                            (ArrayList<? extends Parcelable>) showFormatList
+                    );
+
                     getActivity().getSupportFragmentManager()
                             .beginTransaction()
                             .addToBackStack(null)
@@ -113,7 +106,7 @@ public class FragmentGlossary extends Fragment implements Observer {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        cursor.close();
+        beanCursorWrapper.close();
         if (actionModeCallback.actionMode != null) {
             actionModeCallback.actionMode.finish();
         }
@@ -122,28 +115,32 @@ public class FragmentGlossary extends Fragment implements Observer {
 
     @Override
     public void update(Observable o, Object arg) {
+        showFormatList.clear();
         queryAll();
     }
 
     private void queryAll() {
         //查询所有
-        cursor = TranslationLab.get(getActivity()).queryNewWord(null, null);
+        beanCursorWrapper = TranslationLab.get(getActivity()).queryNewWord(null, null);
 
-        Log.d(TAG, "查询到的生词个数:" + cursor.getCount());
-        cursor.moveToFirst();
+        Log.d(TAG, "查询到的生词个数:" + beanCursorWrapper.getCount());
+        beanCursorWrapper.moveToFirst();
 
-        adapterLV = new AdapterLV(getActivity(), cursor);
+        adapterLV = new AdapterLV(getActivity(), beanCursorWrapper);
         listView.setAdapter(adapterLV);
-        for (cursor.isBeforeFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
-            enList.add(cursor.getString(0));
-            zhList.add(cursor.getString(1));
-            explanationList.add(cursor.getString(2));
+        for (beanCursorWrapper.isBeforeFirst(); !beanCursorWrapper.isAfterLast(); beanCursorWrapper.moveToNext()) {
+            NewWord newWord = beanCursorWrapper.getNewWord();
+            FragmentCardMode.ShowFormat showFormat = new FragmentCardMode.ShowFormat();
+            showFormat.setEn_word(newWord.getEn_word());
+            showFormat.setZh_word(newWord.getZh_word());
+            showFormat.setExplanation(newWord.getExplanation());
+            showFormatList.add(showFormat);
         }
     }
 
     /*--------------------------------------------------------------------------------------------*/
 
-    private class ActionModeCallback implements AbsListView.MultiChoiceModeListener {
+    private class ActionModeCallback implements MultiChoiceModeListener {
         private ActionMode actionMode;
 
         /**
@@ -210,8 +207,8 @@ public class FragmentGlossary extends Fragment implements Observer {
                     break;
                 case R.id.delete:
                     (new AlertDialog.Builder(getActivity())).setIcon(R.mipmap.ic_launcher)
-                            .setTitle("")
-                            .setMessage("真的要删除吗？")
+                            .setTitle("警告！")
+                            .setMessage("真的要删除吗？确定已经记住了？")
                             .setPositiveButton("确定", new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
@@ -220,8 +217,8 @@ public class FragmentGlossary extends Fragment implements Observer {
                                     for (int i = 0; i < listView.getCount() - 1; i++) {
                                         //遍历查看哪个是已选状态的，是的就删除
                                         if (listView.isItemChecked(i)) {
-                                            cursor.moveToPosition(i);
-                                            TranslationLab.get(getActivity()).deleteNewWord(cursor.getString(0));
+                                            beanCursorWrapper.moveToPosition(i);
+                                            TranslationLab.get(getActivity()).deleteNewWord(beanCursorWrapper.getString(0));
                                         }
                                     }
 

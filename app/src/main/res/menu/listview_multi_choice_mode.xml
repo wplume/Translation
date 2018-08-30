@@ -4,7 +4,7 @@
     <item
         android:id="@+id/selectAll"
         android:title="全选"
-        app:showAsAction="always" />
+        app:showAsAction="ifRoom" />
     <item
         android:id="@+id/delete"
         android:title="删除"

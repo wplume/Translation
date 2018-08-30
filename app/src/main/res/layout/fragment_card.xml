@@ -20,6 +20,6 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center"
         android:layout_margin="100dp"
-        android:src="@drawable/add"
+        android:src="@drawable/icon_add"
         android:visibility="invisible" />
 </FrameLayout>

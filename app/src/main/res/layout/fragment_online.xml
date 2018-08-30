@@ -179,7 +179,7 @@
         android:layout_gravity="bottom|end"
         android:layout_marginBottom="66dp"
         android:layout_marginEnd="16dp"
-        app:srcCompat="@drawable/search"
+        app:srcCompat="@drawable/icon_search"
         app:tint="@color/white"
         app:backgroundTint="@color/colorPrimary"/>
 

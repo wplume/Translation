@@ -1,6 +1,28 @@
 package com.example.asus.translation.bean;
 
-public class NewWord {
+import android.os.Parcel;
+import android.os.Parcelable;
+
+public class NewWord implements Parcelable {
+    public static final Creator<NewWord> CREATOR = new Creator<NewWord>() {
+        @Override
+        public NewWord createFromParcel(Parcel source) {
+            NewWord newWord = new NewWord();
+            newWord.setEn_word(source.readString());
+            newWord.setZh_word(source.readString());
+            newWord.setExplanation(source.readString());
+            return newWord;
+        }
+
+        @Override
+        public NewWord[] newArray(int size) {
+            return new NewWord[size];
+        }
+    };
+    private String en_word;
+    private String zh_word;
+    private String explanation;
+
     public String getEn_word() {
         return en_word;
     }
@@ -25,7 +47,15 @@ public class NewWord {
         this.explanation = explanation;
     }
 
-    private String en_word;
-    private String zh_word;
-    private String explanation;
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(getEn_word());
+        dest.writeString(getZh_word());
+        dest.writeString(getExplanation());
+    }
 }

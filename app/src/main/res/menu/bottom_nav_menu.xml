@@ -2,14 +2,14 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/bottom_home"
-        android:icon="@drawable/home"
+        android:icon="@drawable/icon_home"
         android:title="首页" />
     <item
         android:id="@+id/bottom_offline"
-        android:icon="@drawable/abc"
+        android:icon="@drawable/icon_abc"
         android:title="词汇" />
     <item
         android:id="@+id/bottom_glossary"
-        android:icon="@drawable/glossary"
+        android:icon="@drawable/icon_note"
         android:title="生词本" />
 </menu>
