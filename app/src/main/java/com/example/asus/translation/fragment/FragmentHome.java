@@ -56,7 +56,14 @@ public class FragmentHome extends Fragment {
     private static final int CONFIG_DAILY_SENTENCE = 0;
     private static final int CONFIG_PICTURE = 1;
     private static final int CONFIG_SEARCH_WORD_RESULT = 2;
-
+    private static final String URL = "http://open.iciba.com/dsapi/?date=";
+    /**
+     * 金山api申请到的key，查词的时候需要和词一起传给服务器
+     */
+    private static final String KEY = "8B1845F228CA3D723DC68AEF651CCCDD";
+    SimpleDateFormat simpleDateFormat;
+    String date;
+    boolean isConnect;
     private ImageView imageView;
     private TextView content;
     private TextView note;
@@ -69,17 +76,6 @@ public class FragmentHome extends Fragment {
     private TextView tvWord;
     private Toolbar toolbar;
     private CardView cardView;
-
-    private static final String URL = "http://open.iciba.com/dsapi/?date=";
-    /**
-     * 金山api申请到的key，查词的时候需要和词一起传给服务器
-     */
-    private static final String KEY = "8B1845F228CA3D723DC68AEF651CCCDD";
-    SimpleDateFormat simpleDateFormat;
-    String date;
-    String word;
-
-    boolean isConnect;
     private FloatingActionButton btnFloat;
     private View view;
 
@@ -210,13 +206,7 @@ public class FragmentHome extends Fragment {
             btnFloat.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    //提前设置好搜索回调函数
-                    ((MainActivity) getActivity()).setSearchCallBack(new MainActivity.SearchCallBack() {
-                        @Override
-                        public void setSearchCallback() {
-                            searchRequest();
-                        }
-                    });
+
                     //启动search dialog（系统负责）
                     getActivity().onSearchRequested();
                 }
@@ -224,22 +214,25 @@ public class FragmentHome extends Fragment {
         }
     }
 
-    private void searchRequest() {
-        //在Manifest文件中已经设置SingleTop模式（启动时如果已经在栈顶，将直接使用给活动）
-        word = getActivity().getIntent().getStringExtra(SearchManager.QUERY);
+    public void searchRequest(String word) {
         word = word.toLowerCase();
 
         for (int i = 0; i < word.length(); i++) {
             char c = word.charAt(i);
-            if (c >= 'a' && c <= 'z') {
+            if (c < 'a' || c > 'z') {
+                // TODO: 2018/8/1 中文翻译待开发
+                Toast.makeText(getActivity(), "请输入正确的字符", Toast.LENGTH_SHORT).show();
+                break;
+            } else {
                 if (i == word.length() - 1) {
 
                     //用户点击确定之后，将关键字保存到历史纪录，声明好权限
-                    SearchRecentSuggestions searchRecentSuggestions =
-                            new SearchRecentSuggestions(
-                                    getActivity(),
-                                    OnlineSuggestionProvider.AUTHORITY,
-                                    OnlineSuggestionProvider.MODE);
+                    SearchRecentSuggestions searchRecentSuggestions = new SearchRecentSuggestions(
+                            getActivity(),
+                            OnlineSuggestionProvider.AUTHORITY,
+                            OnlineSuggestionProvider.MODE
+                    );
+
                     searchRecentSuggestions.saveRecentQuery(word, null);
 
                     if (isConnect) {
@@ -269,10 +262,6 @@ public class FragmentHome extends Fragment {
                         Toast.makeText(getActivity(), "无法加载", Toast.LENGTH_SHORT).show();
                     }
                 }
-            } else {
-                // TODO: 2018/8/1 中文翻译待开发
-                Toast.makeText(getActivity(), "请输入正确的字符", Toast.LENGTH_SHORT).show();
-                break;
             }
         }
 

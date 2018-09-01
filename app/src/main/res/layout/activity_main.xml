@@ -50,7 +50,7 @@
     <!--这个是drawer的菜单页面-->
     <android.support.design.widget.NavigationView
         android:id="@+id/navigation"
-        android:layout_width="240dp"
+        android:layout_width="300dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
         app:headerLayout="@layout/drawer_nav_header"

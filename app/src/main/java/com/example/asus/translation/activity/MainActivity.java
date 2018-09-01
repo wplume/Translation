@@ -1,6 +1,7 @@
 package com.example.asus.translation.activity;
 
 import android.Manifest;
+import android.app.SearchManager;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -59,20 +60,15 @@ import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity implements
         FragmentDownloadUpdateDialog.DownloadUpdateDialogListener,
-        BottomNavigationView.OnNavigationItemSelectedListener {
+        BottomNavigationView.OnNavigationItemSelectedListener,
+        NavigationView.OnNavigationItemSelectedListener {
 
     private static final String DATABASE_FILENAME = "BioDic.db";
-    /**
-     * 获取最新软件版本号的地址
-     */
     private static final String versionUrl = "https://raw.githubusercontent.com/wplume/Translation/master/app/release/output.json";
-    /**
-     * 获取最新软件apk文件的地址
-     */
     private static final String downloadUrl = "https://github.com/wplume/Translation/raw/master/app/release/app-release.apk";
-    private static String TAG = MainActivity.class.getName();
-    BottomNavigationView bottomNavigationView;
-    Handler checkUpdateHandler = new Handler(new Handler.Callback() {
+    private static final String TAG = MainActivity.class.getName();
+
+    private Handler checkUpdateHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(Message msg) {
             try {
@@ -82,7 +78,7 @@ public class MainActivity extends AppCompatActivity implements
                 Log.d(TAG, "当前版本为：" + currentVersionCode + " / " + "服务器版本为：" + newestVersionCode);
 
                 if (currentVersionCode == newestVersionCode) {
-                    Toast.makeText(MainActivity.this, "您当前已经是最新版本" + newestVersionCode, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, "您当前已经是最新版本 " + newestVersionCode, Toast.LENGTH_SHORT).show();
                 } else {
                     FragmentDownloadUpdateDialog dialog = new FragmentDownloadUpdateDialog();
                     dialog.show(getSupportFragmentManager(), "DownloadUpdateDialog");
@@ -124,7 +120,7 @@ public class MainActivity extends AppCompatActivity implements
     private FragmentManager fragmentManager;
     private Fragment lastFragment;
     private ServiceConnection serviceConnection = null;
-    private SearchCallBack searchCallBack;
+    private BottomNavigationView bottomNavigationView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -135,8 +131,12 @@ public class MainActivity extends AppCompatActivity implements
         // 申请 WRITE_EXTERNAL_STORAGE(外部存储写入) 权限，也需要在Manifests里面用<user-permission>标记
         int checkSelfPermission = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
         if (checkSelfPermission != PackageManager.PERMISSION_GRANTED) {
-            // 点三个参数1，对应的是onRequestPermissionsResult的requestCode
-            ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+            // 第三个参数1，对应的是onRequestPermissionsResult的requestCode
+            ActivityCompat.requestPermissions(
+                    MainActivity.this,
+                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    1
+            );
         }
 
         // 设置状态栏
@@ -155,28 +155,16 @@ public class MainActivity extends AppCompatActivity implements
                             | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
         }
 
-        if (!(new File(getDatabasePath(DATABASE_FILENAME).getPath())).exists()) write();
+        if (!(new File(getDatabasePath(DATABASE_FILENAME).getPath())).exists()) {
+            writeToDatabase();
+        }
 
         // 设置侧边栏里面的NavigationView
         NavigationView navigationView = findViewById(R.id.navigation);
-        navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
-            @Override
-            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-                switch (item.getItemId()) {
-                    case R.id.nav_about:
-                        // 显示关于的dialog
-                        FragmentAboutDialog dialog = new FragmentAboutDialog();
-                        dialog.show(getSupportFragmentManager(), "AboutDialog");
-                        break;
-                    case R.id.nav_update:
-                        // 检测软件版本并判断是否更新
-                        Toast.makeText(MainActivity.this, "正在检查版本信息，请稍后^_^", Toast.LENGTH_SHORT).show();
-                        HttpUtil.sendOkHttpGetRequest(versionUrl, checkUpdateCallback);
-                        break;
-                }
-                return false;
-            }
-        });
+        navigationView.setNavigationItemSelectedListener(this);
+        // 设置底部导航栏
+        bottomNavigationView = findViewById(R.id.bottom_navigation_view);
+        bottomNavigationView.setOnNavigationItemSelectedListener(this);
 
         // 设置初始页面
         fragmentManager = getSupportFragmentManager();
@@ -184,21 +172,19 @@ public class MainActivity extends AppCompatActivity implements
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         fragmentTransaction.add(R.id.main_container, fragmentHome).commit();
         lastFragment = fragmentHome;
-
-        bottomNavigationView = findViewById(R.id.bottom_navigation_view);
-        bottomNavigationView.setOnNavigationItemSelectedListener(this);
-
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
 
-        if (serviceConnection != null)
+        if (serviceConnection != null) {
             unbindService(serviceConnection);
+        }
+
+        checkUpdateHandler.removeCallbacksAndMessages(null);
     }
 
-    // 权限请求回调
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         // requestCode对应的是requestPermissions的第三个参数
@@ -215,15 +201,10 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     protected void onNewIntent(Intent intent) {
         setIntent(intent);
-        if (searchCallBack != null)
-            searchCallBack.setSearchCallback();
+        String queryWord = getIntent().getStringExtra(SearchManager.QUERY);
+        fragmentHome.searchRequest(queryWord);
     }
 
-    public void setSearchCallBack(SearchCallBack searchCallBack) {
-        this.searchCallBack = searchCallBack;
-    }
-
-    // 这是实现 FragmentDownloadUpdateDialog 的两个回调
     @Override
     public void OnPositiveButtonClicked() {
         Log.d(TAG, "用户点击了确认下载");
@@ -256,61 +237,72 @@ public class MainActivity extends AppCompatActivity implements
         Log.d(TAG, "用户点击了取消下载");
     }
 
-    // 底部导航栏事件
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         switch (item.getItemId()) {
             case R.id.bottom_home:
                 Log.d(TAG, "点击了首页");
                 if (fragmentHome == null) {
                     fragmentHome = new FragmentHome();
-                    fragmentTransaction.add(R.id.main_container, fragmentHome);
-                    fragmentTransaction.hide(lastFragment);
-                } else {
-                    if (!lastFragment.equals(fragmentHome)) {
-                        fragmentTransaction.show(fragmentHome);
-                        fragmentTransaction.hide(lastFragment);
-                    }
+                    addFragment(fragmentHome);
+                } else if (bottomNavigationView.getSelectedItemId() != R.id.bottom_home) {
+                    convertFragment(fragmentHome);
                 }
-                lastFragment = fragmentHome;
                 break;
 
             case R.id.bottom_offline:
                 Log.d(TAG, "点击了词汇");
                 if (fragmentVocabulary == null) {
                     fragmentVocabulary = new FragmentVocabulary();
-                    fragmentTransaction.add(R.id.main_container, fragmentVocabulary);
-                    fragmentTransaction.hide(lastFragment);
-                } else {
-                    if (!lastFragment.equals(fragmentVocabulary)) {
-                        fragmentTransaction.show(fragmentVocabulary);
-                        fragmentTransaction.hide(lastFragment);
-                    }
+                    addFragment(fragmentVocabulary);
+                } else if (bottomNavigationView.getSelectedItemId() != R.id.bottom_offline) {
+                    convertFragment(fragmentVocabulary);
                 }
-                lastFragment = fragmentVocabulary;
                 break;
 
             case R.id.bottom_glossary:
                 Log.d(TAG, "点击了生词本");
                 if (fragmentGlossary == null) {
                     fragmentGlossary = new FragmentGlossary();
-                    fragmentTransaction.add(R.id.main_container, fragmentGlossary);
-                    fragmentTransaction.hide(lastFragment);
-                } else {
-                    if (!lastFragment.equals(fragmentGlossary)) {
-                        fragmentTransaction.show(fragmentGlossary);
-                        fragmentTransaction.hide(lastFragment);
-                    }
+                    addFragment(fragmentGlossary);
+                } else if (bottomNavigationView.getSelectedItemId() != R.id.bottom_glossary) {
+                    convertFragment(fragmentGlossary);
                 }
-                lastFragment = fragmentGlossary;
+                break;
+
+            case R.id.nav_about:
+                Log.d(TAG, "点击了关于");
+                FragmentAboutDialog dialog = new FragmentAboutDialog();
+                dialog.show(getSupportFragmentManager(), "AboutDialog");
+                break;
+            case R.id.nav_update:
+                Log.d(TAG, "点击了检查更新");
+                Toast.makeText(MainActivity.this, "正在检查版本信息，请稍后^_^", Toast.LENGTH_SHORT).show();
+                HttpUtil.sendOkHttpGetRequest(versionUrl, checkUpdateCallback);
                 break;
         }
-        fragmentTransaction.commit();
         return true;
     }
 
-    private void write() {
+    private void addFragment(Fragment fragment) {
+        FragmentTransaction transaction = fragmentManager.beginTransaction();
+        transaction.add(R.id.main_container, fragment);
+        if (lastFragment != null) {
+            transaction.hide(lastFragment);
+        }
+        lastFragment = fragment;
+        transaction.commit();
+    }
+
+    private void convertFragment(Fragment fragment) {
+        FragmentTransaction transaction = fragmentManager.beginTransaction();
+        transaction.show(fragment);
+        transaction.hide(lastFragment);
+        lastFragment = fragment;
+        transaction.commit();
+    }
+
+    private void writeToDatabase() {
         Log.d(TAG, "将xls文件数据读入数据库的词汇表");
         try {
             //.xls文件放在assets文件夹
@@ -338,7 +330,4 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
-    public interface SearchCallBack {
-        void setSearchCallback();
-    }
 }

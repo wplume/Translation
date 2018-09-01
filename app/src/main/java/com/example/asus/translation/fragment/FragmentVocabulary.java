@@ -7,6 +7,8 @@ import android.os.Bundle;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
@@ -23,8 +25,8 @@ import android.widget.ListView;
 
 import com.example.asus.translation.R;
 import com.example.asus.translation.TranslationLab;
+import com.example.asus.translation.activity.MainActivity;
 import com.example.asus.translation.adapter.AdapterLV;
-import com.example.asus.translation.bean.NewWord;
 import com.example.asus.translation.bean.OfflineWord;
 import com.example.asus.translation.db.BeanCursorWrapper;
 
@@ -44,19 +46,23 @@ public class FragmentVocabulary extends Fragment {
     AdapterLV adapterLV;
     View view;
     BeanCursorWrapper beanCursorWrapper;
+    private List<FragmentCardMode.ShowFormat> showFormatList = new ArrayList<>();
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        view = inflater.inflate(R.layout.fragment_offline, container, false);
+        view = inflater.inflate(R.layout.fragment_vocabulary, container, false);
 
         Toolbar toolbar = view.findViewById(R.id.toolbar);
-        listView = view.findViewById(R.id.listView);
+        toolbar.setTitle(R.string.vocabulary);
+        ((AppCompatActivity) getActivity()).setSupportActionBar(toolbar);
 
-        AppCompatActivity appCompatActivity = (AppCompatActivity) getActivity();
-        if (appCompatActivity != null) {
-            appCompatActivity.setSupportActionBar(toolbar);
-            appCompatActivity.setTitle(R.string.vocabulary);
-        }
+        DrawerLayout drawerLayout = getActivity().findViewById(R.id.main_drawer_layout);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(getActivity(), drawerLayout, toolbar, R.string.drawer_open, R.string.drawer_close);
+        drawerLayout.addDrawerListener(toggle);
+
+        toggle.syncState();
+
+        listView = view.findViewById(R.id.listView);
 
         //Fragment中要设置这个menu才能显示
         setHasOptionsMenu(true);
@@ -126,8 +132,6 @@ public class FragmentVocabulary extends Fragment {
             }
         }
     }
-
-    private List<FragmentCardMode.ShowFormat> showFormatList = new ArrayList<>();
 
     void queryAll() {
         //_id 是以为SimpleCursorAdapter from必须要有一个_id列

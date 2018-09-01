@@ -93,7 +93,6 @@ public class FragmentGlossary extends Fragment implements Observer {
         return view;
     }
 
-    //fragment调用hide()或者show()，生命周期的回调函数将不执行
     @Override
     public void onHiddenChanged(boolean hidden) {
         super.onHiddenChanged(hidden);
@@ -137,8 +136,6 @@ public class FragmentGlossary extends Fragment implements Observer {
             showFormatList.add(showFormat);
         }
     }
-
-    /*--------------------------------------------------------------------------------------------*/
 
     private class ActionModeCallback implements MultiChoiceModeListener {
         private ActionMode actionMode;
