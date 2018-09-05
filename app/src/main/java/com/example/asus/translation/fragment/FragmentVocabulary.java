@@ -25,7 +25,6 @@ import android.widget.ListView;
 
 import com.example.asus.translation.R;
 import com.example.asus.translation.TranslationLab;
-import com.example.asus.translation.activity.MainActivity;
 import com.example.asus.translation.adapter.AdapterLV;
 import com.example.asus.translation.bean.OfflineWord;
 import com.example.asus.translation.db.BeanCursorWrapper;
@@ -33,7 +32,7 @@ import com.example.asus.translation.db.BeanCursorWrapper;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.example.asus.translation.db.TranslationDBSchema.*;
+import static com.example.asus.translation.db.TranslationDBSchema.VocabularyTable;
 
 
 /**
