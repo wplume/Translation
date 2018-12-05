@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.asus.translation">
+    package="com.personal.asus.translation">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -13,7 +13,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".activity.MainActivity"
+            android:name="com.personal.asus.translation.activity.MainActivity"
             android:launchMode="singleTop"
             android:windowSoftInputMode="adjustPan">
             <intent-filter>
@@ -40,7 +40,7 @@
                 android:resource="@xml/searchable" />
         </activity>
 
-        <activity android:name=".SearchActivity">
+        <activity android:name="com.personal.asus.translation.SearchActivity">
 
             <!-- 声明action为SEARCH -->
             <intent-filter>
@@ -55,12 +55,12 @@
 
         <!--exported="false" 意思是除了你自己以及你给予授权的人，其他任何人都不允许使用这个Provider-->
         <provider
-            android:name=".OnlineSuggestionProvider"
-            android:authorities="com.example.asus.translation.OnlineSuggestionProvider"
+            android:name="com.personal.asus.translation.OnlineSuggestionProvider"
+            android:authorities="com.personal.asus.translation.OnlineSuggestionProvider"
             android:exported="false" />
 
         <service
-            android:name=".DownloadService"
+            android:name="com.personal.asus.translation.DownloadService"
             android:enabled="true"
             android:exported="true" />
     </application>
