@@ -278,7 +278,7 @@ public class MainActivity extends AppCompatActivity implements
             case R.id.nav_update:
                 Log.d(TAG, "点击了检查更新");
                 Toast.makeText(MainActivity.this, "正在检查版本信息，请稍后^_^", Toast.LENGTH_SHORT).show();
-                HttpUtil.sendOkHttpGetRequest(versionUrl, checkUpdateCallback);
+                HttpUtil.sendOkHttp_GetRequest(versionUrl, checkUpdateCallback);
                 break;
         }
         return true;

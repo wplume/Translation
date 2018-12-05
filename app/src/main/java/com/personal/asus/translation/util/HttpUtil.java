@@ -76,7 +76,7 @@ public class HttpUtil {
      * @param url 请求地址
      * @param listener 使用OkHttp提供的回调接口
      */
-    public static void sendOkHttpGetRequest(final String url, final Callback listener) {
+    public static void sendOkHttp_GetRequest(final String url, final Callback listener) {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -92,7 +92,7 @@ public class HttpUtil {
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
     @SuppressWarnings("unused")
-    public static void sendOkHttpPostRequest(final String url, final String postData, final Callback listener) {
+    public static void sendOkHttp_PostRequest(final String url, final String postData, final Callback listener) {
         new Thread(new Runnable() {
             @Override
             public void run() {

@@ -176,7 +176,7 @@ public class FragmentHome extends Fragment {
     private void doRequest() {
 
         if (isConnect) {
-            HttpUtil.sendOkHttpGetRequest(URL + date, new Callback() {
+            HttpUtil.sendOkHttp_GetRequest(URL + date, new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
                     Log.e(TAG, "onFailure: " + e.getMessage());
@@ -236,7 +236,7 @@ public class FragmentHome extends Fragment {
 
                     if (isConnect) {
                         String url = String.format("http://dict-co.iciba.com/api/dictionary.php?w=%s&type=json&key=%s", word, KEY);
-                        HttpUtil.sendOkHttpGetRequest(url, new Callback() {
+                        HttpUtil.sendOkHttp_GetRequest(url, new Callback() {
                             @Override
                             public void onFailure(Call call, IOException e) {
 
@@ -272,7 +272,7 @@ public class FragmentHome extends Fragment {
         note.setText(jsDailySentence.getNote());
 
         String url = jsDailySentence.getPicture2();
-        HttpUtil.sendOkHttpGetRequest(url, new Callback() {
+        HttpUtil.sendOkHttp_GetRequest(url, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
 
